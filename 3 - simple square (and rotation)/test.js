@@ -17,6 +17,9 @@ var FSHADER_SOURCE =
     '}\n';
 
 
+
+
+
 function main() {
     // Retrieve <canvas> element
     var canvas = document.getElementById('webgl');
@@ -71,6 +74,8 @@ function main() {
     ========================= **/
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, n);
 }
+
+
 
 
 
