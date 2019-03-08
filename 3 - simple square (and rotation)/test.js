@@ -3,9 +3,8 @@ var VSHADER_SOURCE =
     'attribute vec4 a_Position;\n' +
     'attribute vec4 a_Color;\n' +
     'varying vec4 v_Color;\n' +
-    'uniform vec4 u_Translation;\n' +
     'void main() {\n' +
-    '  gl_Position = a_Position + u_Translation;\n' + //Coordinates
+    '  gl_Position = a_Position;\n' + //Coordinates
     '  v_Color = a_Color;\n' + 
     '}\n';
 
@@ -17,7 +16,6 @@ var FSHADER_SOURCE =
     '  gl_FragColor = v_Color;\n' +  // Point Color
     '}\n';
 
-var Tx = 0.5, Ty = 0.5, Tz = 0.0;
 
 function main() {
     // Retrieve <canvas> element
@@ -52,9 +50,7 @@ function main() {
       console.log('Failed to set the positions of the vertices');
       return;
     }
-  
-    var u_Translation = gl.getUniformLocation(gl.program, 'u_Translation');
-    gl.uniform4f(u_Translation, Tx, Ty, Tz, 0.0);
+
 
     /** =========================
         Colour for cleaing Canvas  
@@ -73,20 +69,21 @@ function main() {
     /** =========================
         Draw   
     ========================= **/
-    gl.drawArrays(gl.TRIANGLES, 0, n);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, n);
 }
 
 
 
 function initVertexBuffers(gl){
   
-  var n = 3;
+  var n = 4;
 
   // Defines the vertices position and colour
   var verticesColors = new Float32Array([
-    0.0, 0.5, 0.0, 1.0, 0.0,
+    -0.5, 0.5, 0.0, 1.0, 0.0,
     -0.5, -0.5, 1.0, 0.0, 0.0,
-    0.5, -0.5, 0.0, 0.0, 1.0,   
+    0.5, 0.5, 0.0, 0.0, 1.0,  
+    0.5, -0.5, 1.0, 1.0, 0.0,
   ]);
 
   // Create buffer object
