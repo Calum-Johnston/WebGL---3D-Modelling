@@ -5,6 +5,7 @@ var VSHADER_SOURCE =
   'attribute vec4 a_Color;\n' +
   'attribute vec4 a_Normal;\n' +  // Normal
   'uniform mat4 u_MvpMatrix;\n' +
+  'uniform mat4 u_NormalMatrix;\n' +  // Transformation matrix of normal
   'uniform vec3 u_LightColor;\n' +  // Light COlour
   'uniform vec3 u_LightDirection;\n' +  // World coordinates (normalised)
   'uniform vec3 u_AmbientLight;\n' +  // Color of an ambient light
@@ -13,8 +14,8 @@ var VSHADER_SOURCE =
      // Calculates the position of the vertex
   '  gl_Position = u_MvpMatrix * a_Position;\n' +
 
-     // MAkes the length of the normal 1.0
-  '  vec3 normal = normalize(vec3(a_Normal));\n' +
+     // Recalculate normal with normal matrix and make length 1.0
+  '  vec3 normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
      // Dot product of light direction and orientation of surface
   '  float nDotL = max(dot(u_LightDirection, normal), 0.0);\n' +
      // Calculate the color due to diffuse reflection
@@ -68,27 +69,38 @@ function main() {
 
   // Get the storage locations (from vertex shader)
   var u_MvpMatrix = gl.getUniformLocation(gl.program, 'u_MvpMatrix');
+  var u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
   var u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
   var u_LightDirection = gl.getUniformLocation(gl.program, 'u_LightDirection');
   var u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
-  if (!u_MvpMatrix || !u_LightColor || !u_LightDirection || u_AmbientLight) { 
+  if (!u_MvpMatrix || !u_LightColor || !u_LightDirection 
+    || !u_AmbientLight || !u_NormalMatrix) { 
     console.log('Failed to get the storage locations of variables');
     return;
   }
 
-  // Light stuff
+  // Light stuff (CONSTANT)
   gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0)  //Sets light colour
+  gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2)  //Sets ambient light colour
   var lightDirection = new Vector3([0.5, 3.0, 4.0]); // Sets light direction (in world coordinates)
   lightDirection.normalize(); 
   gl.uniform3fv(u_LightDirection, lightDirection.elements);
 
-  // Defines and sets the view projection matrix
+  // Defines and sets the Mvp Matrix
+  var modelMatrix = new Matrix4();
   var mvpMatrix = new Matrix4();  
+  modelMatrix.setTranslate(0, 0, 0);
+  modelMatrix.rotate(90, 0, 0, 1);
   mvpMatrix.setPerspective(30, canvas.width/canvas.height, 1, 100);
   mvpMatrix.lookAt(3, 3, 7, 0, 0, 0, 0, 1, 0);
-  mvpMatrix.translate(0, 0, 0, 0);
-  mvpMatrix.scale(1, 1, 1);
+  mvpMatrix.multiply(modelMatrix);
   gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
+
+  // Defines and sets the Normal Matrix
+  var normalMatrix = new Matrix4();
+  normalMatrix.setInverseOf(modelMatrix);
+  normalMatrix.transpose();
+  gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
 
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);   // Clear <canvas> through bitwise or;
 
