@@ -10,16 +10,20 @@ SHADERS
 var VSHADER_SOURCE =
   'attribute vec4 a_Position;\n' +
   'attribute vec4 a_Color;\n' +
-  'attribute vec4 a_Normal;\n' +       
+  'attribute vec4 a_Normal;\n' +   
+
   'uniform mat4 u_ModelMatrix;\n' +    // Rotation/translation/scaling information
   'uniform mat4 u_NormalMatrix;\n' +   // Transformation matrix of normal
   'uniform mat4 u_ViewMatrix;\n' +     // Eye point, look up point, up direction
   'uniform mat4 u_ProjMatrix;\n' +     // Sets viewing volume
+ 
   'uniform vec3 u_LightColor;\n' +     // Light color
   'uniform vec3 u_LightDirection;\n' + // Light direction
   'uniform vec3 u_AmbientLight;\n' +   // Color of an ambient light
   'varying vec4 v_Color;\n' +
+ 
   'uniform bool u_isLighting;\n' +    
+ 
   'void main() {\n' +
 
      // Calculates position of vertex
@@ -97,7 +101,7 @@ function main() {
   }
 
   // Set clear color and enable hidden surface removal
-  gl.clearColor(0.0, 0.0, 1.0, 1.0);  // Blue
+  gl.clearColor(204 / 256, 204 / 256, 204 / 256, 1.0);  // Blue
   gl.enable(gl.DEPTH_TEST);
 
   // Clear color and depth buffer
@@ -194,6 +198,7 @@ VERTEX, COLOR, NORMAL & INDEX DEFINITIONS
 // Sets the definition for a cube
 function initCubeVertexBuffers(gl) {
   // Create a cube
+  // Size: 1 by 1 by 1
   //    v6----- v5
   //   /|      /|
   //  v1------v0|
@@ -267,6 +272,7 @@ function initCubeVertexBuffers(gl) {
 // Sets the definition for a prism
 function initPrismVertexBuffers(gl){
   // Create a prism
+  // Size: 1 by 1 by 1
   //           v4     
   //      v1  /  \
   //     /  \/    \
@@ -451,17 +457,18 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
   // Clear color and depth buffer
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+
+  // ==== AXIS DRAWING ====
   gl.uniform1i(u_isLighting, false); // Will not apply lighting
 
   // Set the vertex coordinates and color (for the x, y axes)
-
   var n = initAxesVertexBuffers(gl);
   if (n < 0) {
     console.log('Failed to set the vertex information');
     return;
   }
 
-  // Calculate the view matrix and the projection matrix
+  // Calculate the model matrix
   modelMatrix.setTranslate(0, 0, 0);  // No Translation
   // Pass the model matrix to the uniform variable
   gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
@@ -469,10 +476,12 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
   // Draw x and y axes
   gl.drawArrays(gl.LINES, 0, n);
 
+
+  // ==== CUBE DRAWING ====
   gl.uniform1i(u_isLighting, true); // Will apply lighting
 
   // Set the vertex coordinates and color (for the cube)
-  var n = initPrismVertexBuffers(gl);
+  var n = initCubeVertexBuffers(gl);
   if (n < 0) {
     console.log('Failed to set the vertex information');
     return;
@@ -482,6 +491,39 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
   modelMatrix.setTranslate(0, 0, 0);  // Translation (No translation is supported here)
   modelMatrix.rotate(g_yAngle, 0, 1, 0); // Rotate along y axis
   modelMatrix.rotate(g_xAngle, 1, 0, 0); // Rotate along x axis
+  
+  // This wasn't here before !!!
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+
+  /*
+  // Model the chair seat
+  pushMatrix(modelMatrix);
+    modelMatrix.scale(2.0, 0.5, 2.0); // Scale
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  // Model the chair back
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 1.25, -0.75);  // Translation
+    modelMatrix.scale(2.0, 2.0, 0.5); // Scale
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();*/
+
+
+  // ==== PRISM DRAWING ====
+  
+  // Set the vertex coordinates and color (for the cube)
+  var n = initPrismVertexBuffers(gl);
+  if (n < 0) {
+    console.log('Failed to set the vertex information');
+    return;
+  }
+
+  // Rotate, and then translate
+  modelMatrix.setTranslate(0, 1, 0);  // Translation (No translation is supported here)
+  modelMatrix.rotate(g_yAngle, 0, 1, 0); // Rotate along y axis
+  modelMatrix.rotate(g_xAngle, 1, 0, 0); // Rotate along x axis
+  modelMatrix
   drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
 
   /*
