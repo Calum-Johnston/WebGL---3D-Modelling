@@ -169,7 +169,7 @@ KEY PRESSING
 ===============================
 */
 function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, canvas) {
-
+  document.getElementById("angle").innerHTML = angle;
   g_xDegree = Math.cos(angle) - Math.sin(angle);
   g_zDegree = Math.cos(angle) + Math.sin(angle);
 
@@ -182,13 +182,13 @@ function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatr
       break;
     case 39: // Right arrow key 
       angle = (angle + Math.PI / 180) % (2 * Math.PI);
-      x_degree = Math.cos(angle) - Math.sin(angle);
-      z_degree = Math.cos(angle) + Math.sin(angle);
+      g_xDegree = Math.cos(angle) - Math.sin(angle);
+      g_zDegree = Math.cos(angle) + Math.sin(angle);
       break;
     case 37: // Left arrow key 
       angle = (angle - Math.PI / 180) % (2 * Math.PI);
-      x_degree = Math.cos(angle) - Math.sin(angle);
-      z_degree = Math.cos(angle) + Math.sin(angle);
+      g_xDegree = Math.cos(angle) - Math.sin(angle);
+      g_zDegree = Math.cos(angle) + Math.sin(angle);
       break;
     case 87: // W key
       g_xCord += g_xDegree * forward_backDist;
@@ -199,12 +199,12 @@ function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatr
       g_zCord -= g_zDegree * forward_backDist;
       break;
     case 65: // A key
-      g_xCord += g_xDegree * left_rightDist;
-      g_zCord -= g_zDegree * left_rightDist;
+      g_xCord += g_zDegree * left_rightDist;
+      g_zCord -= g_xDegree * left_rightDist;
       break;
     case 68: // D key
-      g_xCord -= g_xDegree * left_rightDist;
-      g_zCord += g_zDegree * left_rightDist;
+      g_xCord -= g_zDegree * left_rightDist;
+      g_zCord += g_xDegree * left_rightDist;
       break;
     case 69: // e 
       g_yCord += up_downDist;
@@ -493,7 +493,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
 
   // Calculate the view matrix and the projection matrix
   viewMatrix.setLookAt(g_xCord, g_yCord, g_zCord, g_xCord + g_xDegree, g_yLook, g_zCord + g_zDegree, 0, 1, 0);
-  projMatrix.setPerspective(30, canvas.width/canvas.height, 1, 100);
+  projMatrix.setPerspective(40, canvas.width/canvas.height, 1, 100);
   // Pass the view, and projection matrix to the uniform variable respectively
   gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
   gl.uniformMatrix4fv(u_ProjMatrix, false, projMatrix.elements);
