@@ -1,4 +1,11 @@
 // Computer Graphics Coursework: By Calum Johnston
+
+/*
+===============================
+SHADERS
+===============================
+*/
+
 // Vertex shader program
 var VSHADER_SOURCE =
   'attribute vec4 a_Position;\n' +
@@ -14,7 +21,11 @@ var VSHADER_SOURCE =
   'varying vec4 v_Color;\n' +
   'uniform bool u_isLighting;\n' +    
   'void main() {\n' +
+
+     // Calculates position of vertex
   '  gl_Position = u_ProjMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;\n' +
+  
+     // If the object requires lighting 
   '  if(u_isLighting)\n' + 
   '  {\n' +
   '     vec3 normal = normalize((u_NormalMatrix * a_Normal).xyz);\n' +
@@ -42,20 +53,32 @@ var FSHADER_SOURCE =
   '#endif\n' +
   'varying vec4 v_Color;\n' +
   'void main() {\n' +
+
+     // Gives the vertex a particular color
   '  gl_FragColor = v_Color;\n' +
   '}\n';
 
 
 
+
+
+/*
+===============================
+Main Methods
+===============================
+*/
+
+// Key variables for the program
 var modelMatrix = new Matrix4(); // The model matrix
 var viewMatrix = new Matrix4();  // The view matrix
 var projMatrix = new Matrix4();  // The projection matrix
-var g_normalMatrix = new Matrix4();  // Coordinate transformation matrix for normals
+var g_normalMatrix = new Matrix4();  // Coordinate transformation matrix for normals (used for lighting)
 
 var ANGLE_STEP = 3.0;  // The increments of rotation angle (measured in degrees)
 var g_xAngle = 0.0;    // The rotation x angle (measured in degrees)
 var g_yAngle = 0.0;    // The rotation y angle (measured in degrees)
 
+// Main function
 function main() {
   // Retrieve <canvas> element
   var canvas = document.getElementById('webgl');
@@ -74,7 +97,7 @@ function main() {
   }
 
   // Set clear color and enable hidden surface removal
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  gl.clearColor(0.0, 0.0, 1.0, 1.0);  // Blue
   gl.enable(gl.DEPTH_TEST);
 
   // Clear color and depth buffer
@@ -89,9 +112,10 @@ function main() {
   var u_LightDirection = gl.getUniformLocation(gl.program, 'u_LightDirection');
   var u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
 
-  // Trigger using lighting or not
+  // Trigger to define whether lighting is used or not
   var u_isLighting = gl.getUniformLocation(gl.program, 'u_isLighting'); 
 
+  // Checks all uniform variables have been retrieved correctly
   if (!u_ModelMatrix || !u_ViewMatrix || !u_NormalMatrix ||
       !u_ProjMatrix || !u_LightColor || !u_LightDirection ||
       !u_isLighting ) { 
@@ -99,6 +123,7 @@ function main() {
     return;
   }
 
+  // LIGHT RELATED STUFF
   // Set the light color 
   gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
   // Set the ambient light color 
@@ -108,39 +133,51 @@ function main() {
   lightDirection.normalize();     // Normalize
   gl.uniform3fv(u_LightDirection, lightDirection.elements);
 
+  // VIEW RELATED STUFF
   // Calculate the view matrix and the projection matrix
   viewMatrix.setLookAt(0, 0, 15, 0, 0, -100, 0, 1, 0);
   projMatrix.setPerspective(30, canvas.width/canvas.height, 1, 100);
-  // Pass the model, view, and projection matrix to the uniform variable respectively
+  // Pass the view, and projection matrix to the uniform variable respectively
   gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
   gl.uniformMatrix4fv(u_ProjMatrix, false, projMatrix.elements);
 
-
+  // When a key is pressed 
   document.onkeydown = function(ev){
     keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_isLighting);
   };
 
+  // Draws the initial structure
   draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting);
 }
 
+
+
+
+
+/*
+===============================
+KEY PRESSING
+===============================
+*/
 function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
   switch (ev.keyCode) {
-    case 40: // Up arrow key -> the positive rotation of arm1 around the y-axis
+    case 40: // Up arrow key - Positive rotation of model around the y-axis
       g_xAngle = (g_xAngle + ANGLE_STEP) % 360;
       break;
-    case 38: // Down arrow key -> the negative rotation of arm1 around the y-axis
+    case 38: // Down arrow key - Negative rotation of model around the y-axis
       g_xAngle = (g_xAngle - ANGLE_STEP) % 360;
       break;
-    case 39: // Right arrow key -> the positive rotation of arm1 around the y-axis
+    case 39: // Right arrow key - Positive rotation of model around the y-axis
       g_yAngle = (g_yAngle + ANGLE_STEP) % 360;
       break;
-    case 37: // Left arrow key -> the negative rotation of arm1 around the y-axis
+    case 37: // Left arrow key - Negative rotation of model around the y-axis
       g_yAngle = (g_yAngle - ANGLE_STEP) % 360;
       break;
-    default: return; // Skip drawing at no effective action
+    default: 
+      return; // Skip drawing at no effective action
   }
 
-  // Draw the scene
+  // Draws the scene
   draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting);
 }
 
@@ -148,6 +185,13 @@ function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
 
 
 
+/*
+===============================
+VERTEX, COLOR, NORMAL & INDEX DEFINITIONS
+===============================
+*/
+
+// Sets the definition for a cube
 function initCubeVertexBuffers(gl) {
   // Create a cube
   //    v6----- v5
@@ -157,7 +201,8 @@ function initCubeVertexBuffers(gl) {
   //  | |v7---|-|v4
   //  |/      |/
   //  v2------v3
-  var vertices = new Float32Array([   // Coordinates
+  var vertices = new Float32Array([   
+     // Coordinates
      0.5, 0.5, 0.5,  -0.5, 0.5, 0.5,  -0.5,-0.5, 0.5,   0.5,-0.5, 0.5, // v0-v1-v2-v3 front
      0.5, 0.5, 0.5,   0.5,-0.5, 0.5,   0.5,-0.5,-0.5,   0.5, 0.5,-0.5, // v0-v3-v4-v5 right
      0.5, 0.5, 0.5,   0.5, 0.5,-0.5,  -0.5, 0.5,-0.5,  -0.5, 0.5, 0.5, // v0-v5-v6-v1 up
@@ -167,7 +212,8 @@ function initCubeVertexBuffers(gl) {
   ]);
 
 
-  var colors = new Float32Array([    // Colors
+  var colors = new Float32Array([    
+    // Colors
     1, 0, 0,   1, 0, 0,   1, 0, 0,  1, 0, 0,     // v0-v1-v2-v3 front
     1, 0, 0,   1, 0, 0,   1, 0, 0,  1, 0, 0,     // v0-v3-v4-v5 right
     1, 0, 0,   1, 0, 0,   1, 0, 0,  1, 0, 0,     // v0-v5-v6-v1 up
@@ -177,7 +223,8 @@ function initCubeVertexBuffers(gl) {
  ]);
 
 
-  var normals = new Float32Array([    // Normal
+  var normals = new Float32Array([    
+    // Normal
     0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,  // v0-v1-v2-v3 front
     1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,  // v0-v3-v4-v5 right
     0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,  // v0-v5-v6-v1 up
@@ -189,6 +236,7 @@ function initCubeVertexBuffers(gl) {
 
   // Indices of the vertices
   var indices = new Uint8Array([
+    // Indices
      0, 1, 2,   0, 2, 3,    // front
      4, 5, 6,   4, 6, 7,    // right
      8, 9,10,   8,10,11,    // up
@@ -216,8 +264,9 @@ function initCubeVertexBuffers(gl) {
   return indices.length;
 }
 
+// Sets the definition for a prism
 function initPrismVertexBuffers(gl){
-    // Create a prism
+  // Create a prism
   //           v4     
   //      v1  /  \
   //     /  \/    \
@@ -226,7 +275,7 @@ function initPrismVertexBuffers(gl){
   //  v0-------v2
   var vertices = new Float32Array([   
     // Coordinates
-    -0.5, -0.5, 0.5,  0.0, 0.5, 0.5,  0.5,-0.5, 0.5,   // v0-v1-v2 front
+   -0.5, -0.5, 0.5,  0.0, 0.5, 0.5,   0.5,-0.5, 0.5,   // v0-v1-v2 front
     0.0, 0.5, 0.5,   0.0, 0.5,-0.5,   0.5,-0.5,-0.5,   0.5,-0.5, 0.5,   // v1-v4-v5-v2 right
    -0.5,-0.5, 0.5,  -0.5,-0.5,-0.5,   0.0, 0.5,-0.5,   0.0, 0.5, 0.5,   // v0-v3-v4-v1 left
     0.5,-0.5, 0.5,   0.5,-0.5,-0.5,  -0.5,-0.5,-0.5,  -0.5,-0.5, 0.5,   // v2-v5-v3-v0 bottom
@@ -254,8 +303,8 @@ function initPrismVertexBuffers(gl){
  ]);
 
 
- // Indices of the vertices
  var indices = new Uint8Array([
+   // Indices
     0, 1, 2,               // front
     3, 4, 5,   3, 5, 6,    // right
     7, 8, 9,   7, 9,10,    // left
@@ -282,7 +331,9 @@ function initPrismVertexBuffers(gl){
  return indices.length;
 }
 
+// Function initiates an array buffer based on attribute passed
 function initArrayBuffer (gl, attribute, data, num, type) {
+
   // Create a buffer object
   var buffer = gl.createBuffer();
   if (!buffer) {
@@ -292,6 +343,7 @@ function initArrayBuffer (gl, attribute, data, num, type) {
   // Write date into the buffer object
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
   // Assign the buffer object to the attribute variable
   var a_attribute = gl.getAttribLocation(gl.program, attribute);
   if (a_attribute < 0) {
@@ -299,9 +351,11 @@ function initArrayBuffer (gl, attribute, data, num, type) {
     return false;
   }
   gl.vertexAttribPointer(a_attribute, num, type, false, 0, 0);
+
   // Enable the assignment of the buffer object to the attribute variable
   gl.enableVertexAttribArray(a_attribute);
 
+  // Unbind the buffer
   gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
   return true;
@@ -309,18 +363,17 @@ function initArrayBuffer (gl, attribute, data, num, type) {
 
 
 
-
-
+// Sets the definition for the axis
 function initAxesVertexBuffers(gl) {
 
   var verticesColors = new Float32Array([
-    // Vertex coordinates and color (for axes)
-    -20.0,  0.0,   0.0,  1.0,  1.0,  1.0,  // (x,y,z), (r,g,b) 
-     20.0,  0.0,   0.0,  1.0,  1.0,  1.0,
-     0.0,  20.0,   0.0,  1.0,  1.0,  1.0, 
-     0.0, -20.0,   0.0,  1.0,  1.0,  1.0,
-     0.0,   0.0, -20.0,  1.0,  1.0,  1.0, 
-     0.0,   0.0,  20.0,  1.0,  1.0,  1.0 
+    // Vertex coordinates and color 
+   -20.0,  0.0,   0.0,  1.0,  1.0,  1.0,  // (x, y, z) , (r, g, b)
+    20.0,  0.0,   0.0,  1.0,  1.0,  1.0,
+    0.0,  20.0,   0.0,  1.0,  1.0,  1.0, 
+    0.0, -20.0,   0.0,  1.0,  1.0,  1.0,
+    0.0,   0.0, -20.0,  1.0,  1.0,  1.0, 
+    0.0,   0.0,  20.0,  1.0,  1.0,  1.0 
   ]);
   var n = 6;
 
@@ -357,11 +410,18 @@ function initAxesVertexBuffers(gl) {
   // Unbind the buffer object
   gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-  return n;
+  return n;  // Number of vertices
 }
 
 
 
+
+
+/*
+===============================
+MATRIX DEFINITIONS (Stacks)
+===============================
+*/
 
 // Array for storing a matrix
 var g_matrixStack = [];
@@ -372,7 +432,8 @@ function pushMatrix(m) {
   g_matrixStack.push(m2);
 }
 
-function popMatrix() { // Retrieve the matrix from the array
+// Function to pop a matrix off the stack
+function popMatrix() { 
   return g_matrixStack.pop();
 }
 
@@ -380,6 +441,11 @@ function popMatrix() { // Retrieve the matrix from the array
 
 
 
+/*
+===============================
+DRAWING
+===============================
+*/
 function draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
 
   // Clear color and depth buffer
