@@ -8,60 +8,69 @@ SHADERS
 
 // Vertex shader program
 var VSHADER_SOURCE =
-  'attribute vec4 a_Position;\n' +
-  'attribute vec4 a_Color;\n' +
-  'attribute vec4 a_Normal;\n' +   
+    'attribute vec2 a_TexCoords;\n' +
+    'attribute vec4 a_Position;\n' +
+    'attribute vec4 a_Normal;\n' +        // Normal
 
-  'uniform mat4 u_ModelMatrix;\n' +    // Rotation/translation/scaling information
-  'uniform mat4 u_NormalMatrix;\n' +   // Transformation matrix of normal
-  'uniform mat4 u_ViewMatrix;\n' +     // Eye point, look up point, up direction
-  'uniform mat4 u_ProjMatrix;\n' +     // Sets viewing volume
- 
-  'uniform vec3 u_LightColor;\n' +     // Light color
-  'uniform vec3 u_LightDirection;\n' + // Light direction
-  'uniform vec3 u_AmbientLight;\n' +   // Color of an ambient light
-  'varying vec4 v_Color;\n' +
- 
-  'uniform bool u_isLighting;\n' +    
- 
-  'void main() {\n' +
+    'uniform mat4 u_ModelMatrix;\n' +
+    'uniform mat4 u_NormalMatrix;\n' +
+    'uniform mat4 u_ViewMatrix;\n' +
+    'uniform mat4 u_ProjMatrix;\n' +
 
-     // Calculates position of vertex
-  '  gl_Position = u_ProjMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;\n' +
-  
-     // If the object requires lighting 
-  '  if(u_isLighting)\n' + 
-  '  {\n' +
-  '     vec3 normal = normalize((u_NormalMatrix * a_Normal).xyz);\n' +
-  
-        // The dot product of the light direction and the normal
-  '     float nDotL = max(dot(normal, u_LightDirection), 0.0);\n' +
-        // Calculate the color due to diffuse reflection
-  '     vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
+    'varying vec2 v_TexCoords;\n' +
+    'varying vec3 v_Normal;\n' +
+    'varying vec3 v_Position;\n' +
+    'varying vec4 v_Color;\n' +
+    'uniform vec4 u_Color;\n' +
 
-        // Calculate the color due to ambient reflection
-  '     vec3 ambient = u_AmbientLight * a_Color.rgb;\n' +
-  
-        // Adds surface colors due to diffuse and ambient reflection
-  '     v_Color = vec4(diffuse + ambient, a_Color.a);\n' +  '  }\n' +
-  '  else\n' +
-  '  {\n' +
-  '     v_Color = a_Color;\n' +
-  '  }\n' + 
-  '}\n';
+    'void main() {\n' +
+    '  gl_Position = u_ProjMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;\n' +
+    // Calculate the vertex position in the world coordinate
+    '  v_Position = vec3(u_ModelMatrix * a_Position);\n' +
+    '  v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
+    '  v_Color = u_Color;\n' +
+    '  v_TexCoords = a_TexCoords;\n' +
+    '}\n';
 
 // Fragment shader program
 var FSHADER_SOURCE =
-  '#ifdef GL_ES\n' +
-  'precision mediump float;\n' +
-  '#endif\n' +
-  'varying vec4 v_Color;\n' +
-  'void main() {\n' +
+    '#ifdef GL_ES\n' +
+    'precision mediump float;\n' +
+    '#endif\n' +
+    'uniform bool useTextures;\n' +
+    'uniform sampler2D u_Sampler;\n' +
 
-     // Gives the vertex a particular color
-  '  gl_FragColor = v_Color;\n' +
-  '}\n';
+    'uniform vec3 u_AmbientLight;\n' +   // Ambient light color
+    'uniform vec3 u_LightColor;\n' +     // Light color
+    'uniform vec3 u_LightPosition;\n' +  // Position of the light source
 
+    'varying vec2 v_TexCoords;\n' +
+    'varying vec3 v_Normal;\n' +
+    'varying vec3 v_Position;\n' +
+    'varying vec4 v_Color;\n' +
+
+    'vec3 ambient;\n' +
+
+    'void main() {\n' +
+      // Normalize the normal because it is interpolated and not 1.0 in length any more
+    '  vec3 normal = normalize(v_Normal);\n' +
+
+      // Calculate the light direction and make its length 1
+    '  vec3 lightDirection = normalize(u_LightPosition - v_Position);\n' +  
+      // The dot product of the light direction and orientation of a surface (the normal)
+    '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +    
+    '  vec3 diffuse;\n' +
+    '  if (useTextures) {\n' +
+    '    vec4 TexColor = texture2D(u_Sampler, v_TexCoords);\n' +
+    '    diffuse = diffuse + u_LightColor * TexColor.rgb * nDotL;\n' +    
+    '    ambient = u_AmbientLight * TexColor.rgb;\n' +
+    '  } else {\n' +
+    '    diffuse = diffuse + u_LightColor * v_Color.rgb * nDotL;\n' + 
+    '    ambient = u_AmbientLight * v_Color.rgb;\n' +   
+    '  }\n' +
+
+    '  gl_FragColor = vec4(diffuse + ambient, v_Color.a);\n' +
+    '}\n';
 
 
 
@@ -101,7 +110,7 @@ function main() {
   }
 
   // Set clear color and enable hidden surface removal
-  gl.clearColor(204 / 256, 204 / 256, 204 / 256, 1.0);  // Blue
+  gl.clearColor(0.0, 0.0, 1.0, 1.0);  // Blue
   gl.enable(gl.DEPTH_TEST);
 
   // Clear color and depth buffer
@@ -112,20 +121,20 @@ function main() {
   var u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
   var u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
   var u_ProjMatrix = gl.getUniformLocation(gl.program, 'u_ProjMatrix');
-  var u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
-  var u_LightDirection = gl.getUniformLocation(gl.program, 'u_LightDirection');
-  var u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
+  var u_Color = gl.getUniformLocation(gl.program, 'u_Color');
 
   // Trigger to define whether lighting is used or not
-  var u_isLighting = gl.getUniformLocation(gl.program, 'u_isLighting'); 
+ // var u_isLighting = gl.getUniformLocation(gl.program, 'u_isLighting'); 
 
   // Checks all uniform variables have been retrieved correctly
   if (!u_ModelMatrix || !u_ViewMatrix || !u_NormalMatrix ||
-      !u_ProjMatrix || !u_LightColor || !u_LightDirection ||
-      !u_isLighting ) { 
+      !u_ProjMatrix || !u_Color ) { 
     console.log('Failed to Get the storage locations of u_ModelMatrix, u_ViewMatrix, and/or u_ProjMatrix');
     return;
   }
+
+  var useTextures = gl.getUniformLocation(gl.program, "userTextures");
+  var u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');
 
   // LIGHT RELATED STUFF
   // Set the light color 
@@ -152,6 +161,20 @@ function main() {
 
   // Draws the initial structure
   draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting);
+}
+
+
+
+
+
+/*
+===============================
+KEY PRESSING
+===============================
+*/
+
+function loadTexture(){
+  
 }
 
 
