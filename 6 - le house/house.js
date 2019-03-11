@@ -72,15 +72,28 @@ Main Methods
 ===============================
 */
 
-// Key variables for the program
+// Key matrices for drawing
 var modelMatrix = new Matrix4(); // The model matrix
 var viewMatrix = new Matrix4();  // The view matrix
 var projMatrix = new Matrix4();  // The projection matrix
 var g_normalMatrix = new Matrix4();  // Coordinate transformation matrix for normals (used for lighting)
 
-var ANGLE_STEP = 3.0;  // The increments of rotation angle (measured in degrees)
-var g_xAngle = 0.0;    // The rotation x angle (measured in degrees)
-var g_yAngle = 0.0;    // The rotation y angle (measured in degrees)
+// Key variables for movement
+
+var forward_backDist = 0.1;
+var left_rightDist = 0.1;
+var up_downDist = 0.1;
+var panup_downDist = 0.01
+
+// Key variables for camera
+var g_xCord = 68;
+var g_yCord = 10;
+var g_zCord = 45;
+var g_yLook = 10;
+var g_xDegree = 1;
+var g_zDegree = 1;
+
+var angle = 0.89 * Math.PI;  // Radians
 
 // Main function
 function main() {
@@ -137,21 +150,13 @@ function main() {
   lightDirection.normalize();     // Normalize
   gl.uniform3fv(u_LightDirection, lightDirection.elements);
 
-  // VIEW RELATED STUFF
-  // Calculate the view matrix and the projection matrix
-  viewMatrix.setLookAt(0, 0, 15, 0, 0, -100, 0, 1, 0);
-  projMatrix.setPerspective(30, canvas.width/canvas.height, 1, 100);
-  // Pass the view, and projection matrix to the uniform variable respectively
-  gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
-  gl.uniformMatrix4fv(u_ProjMatrix, false, projMatrix.elements);
-
   // When a key is pressed 
   document.onkeydown = function(ev){
-    keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_isLighting);
+    keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, canvas);
   };
 
   // Draws the initial structure
-  draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting);
+  draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, canvas);
 }
 
 
@@ -163,26 +168,58 @@ function main() {
 KEY PRESSING
 ===============================
 */
-function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
+function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, canvas) {
+
+  g_xDegree = Math.cos(angle) - Math.sin(angle);
+  g_zDegree = Math.cos(angle) + Math.sin(angle);
+
   switch (ev.keyCode) {
-    case 40: // Up arrow key - Positive rotation of model around the y-axis
-      g_xAngle = (g_xAngle + ANGLE_STEP) % 360;
+    case 40: // Up arrow key 
+      g_yLook -= panup_downDist;
       break;
-    case 38: // Down arrow key - Negative rotation of model around the y-axis
-      g_xAngle = (g_xAngle - ANGLE_STEP) % 360;
+    case 38: // Down arrow key 
+      g_yLook += panup_downDist;
       break;
-    case 39: // Right arrow key - Positive rotation of model around the y-axis
-      g_yAngle = (g_yAngle + ANGLE_STEP) % 360;
+    case 39: // Right arrow key 
+      angle = (angle + Math.PI / 180) % (2 * Math.PI);
+      x_degree = Math.cos(angle) - Math.sin(angle);
+      z_degree = Math.cos(angle) + Math.sin(angle);
       break;
-    case 37: // Left arrow key - Negative rotation of model around the y-axis
-      g_yAngle = (g_yAngle - ANGLE_STEP) % 360;
+    case 37: // Left arrow key 
+      angle = (angle - Math.PI / 180) % (2 * Math.PI);
+      x_degree = Math.cos(angle) - Math.sin(angle);
+      z_degree = Math.cos(angle) + Math.sin(angle);
+      break;
+    case 87: // W key
+      g_xCord += g_xDegree * forward_backDist;
+      g_zCord += g_zDegree * forward_backDist;
+      break;
+    case 83: // S key
+      g_xCord -= g_xDegree * forward_backDist;
+      g_zCord -= g_zDegree * forward_backDist;
+      break;
+    case 65: // A key
+      g_xCord += g_xDegree * left_rightDist;
+      g_zCord -= g_zDegree * left_rightDist;
+      break;
+    case 68: // D key
+      g_xCord -= g_xDegree * left_rightDist;
+      g_zCord += g_zDegree * left_rightDist;
+      break;
+    case 69: // e 
+      g_yCord += up_downDist;
+      g_yLook += up_downDist;
+      break;
+    case 81:  // q
+      g_yCord -= up_downDist;
+      g_yLook -= up_downDist;
       break;
     default: 
       return; // Skip drawing at no effective action
   }
 
   // Draws the scene
-  draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting);
+  draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, canvas);
 }
 
 
@@ -452,7 +489,14 @@ function popMatrix() {
 DRAWING
 ===============================
 */
-function draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
+function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, canvas) {
+
+  // Calculate the view matrix and the projection matrix
+  viewMatrix.setLookAt(g_xCord, g_yCord, g_zCord, g_xCord + g_xDegree, g_yLook, g_zCord + g_zDegree, 0, 1, 0);
+  projMatrix.setPerspective(30, canvas.width/canvas.height, 1, 100);
+  // Pass the view, and projection matrix to the uniform variable respectively
+  gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
+  gl.uniformMatrix4fv(u_ProjMatrix, false, projMatrix.elements);
 
   // Clear color and depth buffer
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -489,8 +533,9 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
 
   // Rotate, and then translate
   modelMatrix.setTranslate(0, 0, 0);  // Translation (No translation is supported here)
-  modelMatrix.rotate(g_yAngle, 0, 1, 0); // Rotate along y axis
-  modelMatrix.rotate(g_xAngle, 1, 0, 0); // Rotate along x axis
+  modelMatrix.rotate(0, 0, 1, 0); // Rotate along y axis
+  modelMatrix.rotate(0, 1, 0, 0); // Rotate along x axis
+  modelMatrix.scale(20, 20, 20);
   
   // This wasn't here before !!!
   drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
@@ -521,8 +566,8 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
 
   // Rotate, and then translate
   modelMatrix.setTranslate(0, 1, 0);  // Translation (No translation is supported here)
-  modelMatrix.rotate(g_yAngle, 0, 1, 0); // Rotate along y axis
-  modelMatrix.rotate(g_xAngle, 1, 0, 0); // Rotate along x axis
+  modelMatrix.rotate(0, 0, 1, 0); // Rotate along y axis
+  modelMatrix.rotate(0, 1, 0, 0); // Rotate along x axis
   modelMatrix
   drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
 
@@ -539,6 +584,9 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
     modelMatrix.scale(2.0, 2.0, 0.5); // Scale
     drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();*/
+
+  document.getElementById("Position").innerHTML = "Position = (" + g_xCord + ", " + g_yCord + ", " + g_zCord +  ")";
+  document.getElementById("Direction").innerHTML = "Direction = (" + g_xCord + g_xDegree + ", " + g_yLook + ", " + g_zCord + g_zDegree +  ")";
 }
 
 function drawbox(gl, u_ModelMatrix, u_NormalMatrix, n) {
