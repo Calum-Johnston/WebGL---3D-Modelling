@@ -545,27 +545,10 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
   modelMatrix.rotate(0, 0, 1, 0); // Rotate along y axis
   modelMatrix.rotate(0, 1, 0, 0); // Rotate along x axis
 
-  
-  // The main building block
-  pushMatrix(modelMatrix);
-    modelMatrix.scale(20.0, 8.0, 10.0); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
-  modelMatrix = popMatrix();
+  drawFloor(gl, u_ModelMatrix, u_NormalMatrix, n);
+  drawWall(gl, u_ModelMatrix, u_NormalMatrix, n);
 
-  // The smaller building block
-  pushMatrix(modelMatrix);
-    modelMatrix.translate(15, -2, -1);  // Translation
-    modelMatrix.scale(10.0, 4.0, 8.0); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
-  modelMatrix = popMatrix();
 
-  // Other building block
-  pushMatrix(modelMatrix);
-    modelMatrix.translate(16, -2, -5);
-    modelMatrix.rotate(90, 0, 1, 0);
-    modelMatrix.scale(10.0, 4.0, 8.0)
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
-  modelMatrix = popMatrix(modelMatrix);
 
   // ==== PRISM DRAWING ====
   
@@ -580,30 +563,6 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
   modelMatrix.setTranslate(0, 0, 0);  // Translation (No translation is supported here)
   modelMatrix.rotate(0, 0, 1, 0); // Rotate along y axis
   modelMatrix.rotate(0, 1, 0, 0); // Rotate along x axis
-  
-  // Main roof
-  pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 6.5, 0);
-    modelMatrix.rotate(90, 0, 1, 0);
-    modelMatrix.scale(10.0, 5.0, 20.0)
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
-  modelMatrix = popMatrix();
-
-  // Side roof
-  pushMatrix(modelMatrix);
-    modelMatrix.translate(15, 2, -1); 
-    modelMatrix.rotate(90, 0, 1, 0);
-    modelMatrix.scale(8.0, 4.0, 10.0); 
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
-  modelMatrix = popMatrix();
-
-  // Other roof
-  pushMatrix(modelMatrix);
-    modelMatrix.translate(16, 2, -5.5); 
-    modelMatrix.rotate(0, 0, 1, 0);
-    modelMatrix.scale(8.0, 4.0, 9.0); 
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
-  modelMatrix = popMatrix();
 
   document.getElementById("Position").innerHTML = "Position = (" + g_xCord + ", " + g_yCord + ", " + g_zCord +  ")";
   document.getElementById("Direction").innerHTML = "Direction = (" + g_xCord + g_xDegree + ", " + g_yLook + ", " + g_zCord + g_zDegree +  ")";
@@ -623,5 +582,34 @@ function drawbox(gl, u_ModelMatrix, u_NormalMatrix, n) {
     // Draw the cube
     gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);
 
+  modelMatrix = popMatrix();
+}
+
+function drawFloor(gl, u_ModelMatrix, u_NormalMatrix, n){
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, 0); 
+    modelMatrix.scale(20.0, 0.1, 25.0); 
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+}
+
+function drawWall(gl, u_ModelMatrix, u_NormalMatrix, n){
+// Front Wall
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(10.0, 1.0, 0.0); 
+    modelMatrix.scale(0.1, 2.0, 25.0); 
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  // Right Wall
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0.0, 1.0, -12.5); 
+    modelMatrix.scale(20.0, 2.0, 0.1); 
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  // Back Wall
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(-10.0, 1.0, 0.0); 
+    modelMatrix.scale(0.1, 2.0, 25.0); 
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 }
