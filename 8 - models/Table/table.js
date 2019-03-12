@@ -542,7 +542,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
   }
 
   // Do translations that apply to all!
-  modelMatrix.setTranslate(0, 0, 0);  // Translation (No translation is supported here)
+  modelMatrix.setTranslate(25, 0, 0);  // Translation (No translation is supported here)
 
   // Chair legs
   pushMatrix(modelMatrix);
@@ -596,6 +596,43 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
     drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix()
 
+
+  modelMatrix.setTranslate(0, 0, 0);
+
+  // Draw table legs
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, 6.0);
+    modelMatrix.rotate(50, 0, 0, 1);
+    modelMatrix.scale(14.0, 1.0, 1.0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, 6.0);
+    modelMatrix.rotate(-50, 0, 0, 1);
+    modelMatrix.scale(14.0, 1.0, 1.0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, -6.0);
+    modelMatrix.rotate(50, 0, 0, 1);
+    modelMatrix.scale(14.0, 1.0, 1.0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, -6.0);
+    modelMatrix.rotate(-50, 0, 0, 1);
+    modelMatrix.scale(14.0, 1.0, 1.0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  // Draw Table Seat
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 6, 0);
+    modelMatrix.scale(14.0, 1.0, 14.0);
+    modelMatrix.rotate(90, 0, 0, 1);
+    modelMatrix.rotate(90, 0, 1, 0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix()
 
   // ==== PRISM DRAWING ====
   // Set the vertex coordinates and color (for the cube)
