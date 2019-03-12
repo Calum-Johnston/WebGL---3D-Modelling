@@ -566,7 +566,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
     modelMatrix.scale(10.0, 4.0, 8.0)
     drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix(modelMatrix);
-  
+
   // ==== PRISM DRAWING ====
   
   // Set the vertex coordinates and color (for the cube)
