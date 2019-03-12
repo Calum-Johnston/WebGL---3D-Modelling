@@ -212,7 +212,7 @@ function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatr
       g_yCord += up_downDist;
       g_yLook += up_downDist;
       break;
-    case 17:  // Left ctrl
+    case 67:  // C key
       g_yCord -= up_downDist;
       g_yLook -= up_downDist;
       break;
@@ -449,8 +449,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
   drawFloor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
 
-  drawTables(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
-  drawChairs(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+  drawTablesandChairs(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
 
   // Set the vertex coordinates and color (for the cube)
   var n = initPrismVertexBuffers(gl);
@@ -538,6 +537,8 @@ function drawFloor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
 // Draws the floor
 function drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
   gl.uniform4f(u_Color, 230/256, 191/256, 131/256, 1.0);
+
+  pushMatrix(modelMatrix);
   modelMatrix.translate(22.0, -4.0, 0.0); 
   modelMatrix.rotate(-90, 0, 1, 0);
 
@@ -583,6 +584,8 @@ function drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
     modelMatrix.scale(0.1, 1.0, 14.0); 
     drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
+
+  modelMatrix = popMatrix();
 }
 
 // Draws the soil
@@ -590,12 +593,129 @@ function drawSoil(){
 
 }
 
-function drawTables(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+function drawTablesandChairs(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+  gl.uniform4f(u_Color, 230/256, 191/256, 131/256, 1.0);
 
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(22.0, -3.5, 1.0); 
+  modelMatrix.rotate(90, 0, 1, 0); 
+
+  // Front & Back tables
+  for(var h = 0; h < 2; h++){
+    for(var i = 0; i < 5; i++){
+      drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.6 + (2 * i), -0.6 + (2 * i));
+    }
+  }
+
+  // Front & Back chairs
+  for(var h = 0; h < 2; h++){
+    for(var i = 0; i < 5; i++){
+      drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), (2 * i), false);
+      drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), (2 * i), true);
+    }
+  }
+
+  modelMatrix = popMatrix();
 }
 
-function drawChairs(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
-  
+function drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetZ, offsetZ_n){
+  // Draw table legs
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(offsetX, 0, offsetZ);
+    modelMatrix.rotate(50, 0, 0, 1);
+    modelMatrix.scale(1.4, 0.1, 0.1);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(offsetX, 0, offsetZ);
+    modelMatrix.rotate(-50, 0, 0, 1);
+    modelMatrix.scale(1.4, 0.1, 0.1);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(offsetX, 0, offsetZ_n);
+    modelMatrix.rotate(50, 0, 0, 1);
+    modelMatrix.scale(1.4, 0.1, 0.1);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(offsetX, 0, offsetZ_n);
+    modelMatrix.rotate(-50, 0, 0, 1);
+    modelMatrix.scale(1.4, 0.1, 0.1);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  // Draw Table Seat
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(offsetX, 0.6, offsetZ - 0.6);
+    modelMatrix.scale(1.4, 0.1, 1.4);
+    modelMatrix.rotate(90, 0, 0, 1);
+    modelMatrix.rotate(90, 0, 1, 0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix()
+}
+
+function drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetZ, rotate){
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(offsetX, 0, offsetZ);
+
+  if(rotate){
+    modelMatrix.rotate(180, 0, 1, 0);
+    modelMatrix.translate(-1.5, 0, 0);
+  }
+
+  // Chair legs
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, 0.25);
+    modelMatrix.rotate(50, 0, 0, 1);
+    modelMatrix.scale(1.0, 0.1, 0.1);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, 0.25);
+    modelMatrix.rotate(-50, 0, 0, 1);
+    modelMatrix.scale(1.0, 0.1, 0.1);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, -0.25);
+    modelMatrix.rotate(50, 0, 0, 1);
+    modelMatrix.scale(1.0, 0.1, 0.1);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, -0.25);
+    modelMatrix.rotate(-50, 0, 0, 1);
+    modelMatrix.scale(1.0, 0.1, 0.1);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  // Beams on chair leg
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, 0);
+    modelMatrix.rotate(90, 0, 1, 0);
+    modelMatrix.scale(0.6, 0.1, 0.1);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  // Draw Chair Seat
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0.4, 0);
+    modelMatrix.scale(0.7, 0.1, 0.7);
+    modelMatrix.rotate(90, 0, 0, 1);
+    modelMatrix.rotate(90, 0, 1, 0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix()
+
+  // Draw Chair Back
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(-0.35, 0.75, 0);
+    modelMatrix.rotate(-80, 0, 0, 1);
+    modelMatrix.scale(0.7, 0.1, 0.7);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  modelMatrix = popMatrix();
 }
 
 
