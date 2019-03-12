@@ -433,7 +433,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
   // Means lighting will always apply
   gl.uniform1i(u_isLighting, true); // Will apply lighting
 
-  drawBuildings(gl, u_ModelMatrix, u_NormalMatrix, u_Color)
+  drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, u_Color)
 
   // Set the vertex coordinates and color (for the cube)
   var n = initCubeVertexBuffers(gl);
@@ -445,28 +445,31 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
   // Do translations that apply to all!
   modelMatrix.setTranslate(0, 0, 0);  // Translation (No translation is supported here)
   
+  drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color)
   drawFloor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
 
-  document.getElementById("Position").innerHTML = "Position = (" + g_xCord + ", " + g_yCord + ", " + g_zCord +  ")";
-  document.getElementById("Direction").innerHTML = "Direction = (" + g_xCord + g_xDegree + ", " + g_yLook + ", " + g_zCord + g_zDegree +  ")";
-}
-
-function drawBuildings(gl, u_ModelMatrix, u_NormalMatrix, u_Color) { 
-  // ==== CUBE DRAWING ====
+  drawTables(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+  drawChairs(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
 
   // Set the vertex coordinates and color (for the cube)
-  var n = initCubeVertexBuffers(gl);
+  var n = initPrismVertexBuffers(gl);
   if (n < 0) {
     console.log('Failed to set the vertex information');
     return;
   }
 
-  // Do translations that apply to all!
+  // Rotate, and then transldwaate
   modelMatrix.setTranslate(0, 0, 0);  // Translation (No translation is supported here)
-  modelMatrix.rotate(0, 0, 1, 0); // Rotate along y axis
-  modelMatrix.rotate(0, 1, 0, 0); // Rotate along x axis
 
+  drawBuildingRoof(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+
+  document.getElementById("Position").innerHTML = "Position = (" + g_xCord + ", " + g_yCord + ", " + g_zCord +  ")";
+  document.getElementById("Direction").innerHTML = "Direction = (" + g_xCord + g_xDegree + ", " + g_yLook + ", " + g_zCord + g_zDegree +  ")";
+}
+
+function drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) { 
+  
   gl.uniform4f(u_Color, 256/256, 256/256, 256/256, 1.0);
 
   // The main building block
@@ -489,21 +492,10 @@ function drawBuildings(gl, u_ModelMatrix, u_NormalMatrix, u_Color) {
     modelMatrix.scale(10.0, 4.0, 6.0)
     drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix(modelMatrix);
-  
-  // ==== PRISM DRAWING ====
-  
-  // Set the vertex coordinates and color (for the cube)
-  var n = initPrismVertexBuffers(gl);
-  if (n < 0) {
-    console.log('Failed to set the vertex information');
-    return;
-  }
 
-  // Rotate, and then transldwaate
-  modelMatrix.setTranslate(0, 0, 0);  // Translation (No translation is supported here)
-  modelMatrix.rotate(0, 0, 1, 0); // Rotate along y axis
-  modelMatrix.rotate(0, 1, 0, 0); // Rotate along x axis
-  
+}
+
+function drawBuildingRoof(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
   gl.uniform4f(u_Color, 105/256, 105/256, 105/256, 1.0);
 
   // Main roof
@@ -596,6 +588,14 @@ function drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
 // Draws the soil
 function drawSoil(){
 
+}
+
+function drawTables(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+
+}
+
+function drawChairs(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+  
 }
 
 

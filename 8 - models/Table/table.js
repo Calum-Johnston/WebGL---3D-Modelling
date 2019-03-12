@@ -542,7 +542,8 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
   }
 
   // Do translations that apply to all!
-  modelMatrix.setTranslate(25, 0, 0);  // Translation (No translation is supported here)
+  modelMatrix.setTranslate(10, -2.5, 0);  // Translation (No translation is supported here)
+  modelMatrix.rotate(180, 0, 1, 0);
 
   // Chair legs
   pushMatrix(modelMatrix);
@@ -592,10 +593,61 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
     modelMatrix.translate(-3.5, 7.5, 0);
     modelMatrix.rotate(-80, 0, 0, 1);
     modelMatrix.scale(7.0, 1.0, 7.0);
-
     drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix()
 
+  modelMatrix.setTranslate(-10, -2.5, 0);
+
+  // Chair legs
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, 2.5);
+    modelMatrix.rotate(50, 0, 0, 1);
+    modelMatrix.scale(10.0, 1.0, 1.0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, 2.5);
+    modelMatrix.rotate(-50, 0, 0, 1);
+    modelMatrix.scale(10.0, 1.0, 1.0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, -2.5);
+    modelMatrix.rotate(50, 0, 0, 1);
+    modelMatrix.scale(10.0, 1.0, 1.0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, -2.5);
+    modelMatrix.rotate(-50, 0, 0, 1);
+    modelMatrix.scale(10.0, 1.0, 1.0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  // Beams on chair leg
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, 0);
+    modelMatrix.rotate(90, 0, 1, 0);
+    modelMatrix.scale(6.0, 1.0, 1.0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  // Draw Chair Seat
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 4, 0);
+    modelMatrix.scale(7.0, 1.0, 7.0);
+    modelMatrix.rotate(90, 0, 0, 1);
+    modelMatrix.rotate(90, 0, 1, 0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix()
+
+  // Draw Chair Back
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(-3.5, 7.5, 0);
+    modelMatrix.rotate(-80, 0, 0, 1);
+    modelMatrix.scale(7.0, 1.0, 7.0);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix()
 
   modelMatrix.setTranslate(0, 0, 0);
 
