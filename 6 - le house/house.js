@@ -83,13 +83,13 @@ var g_normalMatrix = new Matrix4();  // Coordinate transformation matrix for nor
 var forward_backDist = 0.1;
 var left_rightDist = 0.1;
 var up_downDist = 0.1;
-var panup_downDist = 0.01
+var panup_downDist = 0.02;
 
 // Key variables for camera
-var g_xCord = 68;
-var g_yCord = 10;
-var g_zCord = 45;
-var g_yLook = 10;
+var g_xCord = 47;
+var g_yCord = 16;
+var g_zCord = 46;
+var g_yLook = 15.5;
 var g_xDegree = 1;
 var g_zDegree = 1;
 
