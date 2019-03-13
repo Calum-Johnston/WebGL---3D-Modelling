@@ -448,7 +448,8 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
   drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color)
   drawFloor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
-
+  drawSoil(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+  drawHedges(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawTablesandChairs(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
 
   // Set the vertex coordinates and color (for the cube)
@@ -524,7 +525,7 @@ function drawBuildingRoof(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
 
 // Draws the floor
 function drawFloor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
-  gl.uniform4f(u_Color, 205/256, 165/256, 79/256, 1.0);
+  gl.uniform4f(u_Color, 256/256, 256/256, 64/256, 1.0);
   pushMatrix(modelMatrix);
     modelMatrix.translate(13, -4, 0); 
     modelMatrix.rotate(90, 0, 0, 1); 
@@ -589,8 +590,66 @@ function drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
 }
 
 // Draws the soil
-function drawSoil(){
+function drawSoil(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+  gl.uniform4f(u_Color, 109/256, 88/256, 74/256, 1.0);
 
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(22.0, -3.5, 0.0); 
+  modelMatrix.rotate(-90, 0, 1, 0);
+
+  // Front Soil
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(3.5, 0.0, -4.75); 
+    modelMatrix.scale(1.0, 0.5, 14.0)
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  // Side Soil
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(-1.0, 0.0, -12.0); 
+    modelMatrix.rotate(-90, 0, 1, 0);
+    modelMatrix.scale(1.0, 0.5, 10.0)
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+ 
+  // Back Soil
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(-5.5, 0.0, -4.75); 
+    modelMatrix.scale(1.0, 0.5, 14.0)
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  modelMatrix = popMatrix();
+}
+
+function drawHedges(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+  gl.uniform4f(u_Color, 107/256, 142/256, 35/256, 1.0);
+
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(22.0, -3.0, 0.0); 
+  modelMatrix.rotate(-90, 0, 1, 0);
+
+   // Front Hedge
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(3.5, 0.0, -4.75); 
+    modelMatrix.scale(0.6, 0.5, 14.0)
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  // Side Hedge
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(-1.0, 0.0, -12.0); 
+    modelMatrix.rotate(-90, 0, 1, 0);
+    modelMatrix.scale(0.6, 0.5, 9.6)
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+ 
+  // Back HEdge
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(-5.5, 0.0, -4.75); 
+    modelMatrix.scale(0.6, 0.5, 14.0)
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  modelMatrix = popMatrix();
 }
 
 function drawTablesandChairs(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
@@ -603,43 +662,46 @@ function drawTablesandChairs(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
   // Front & Back tables
   for(var h = 0; h < 2; h++){
     for(var i = 0; i < 5; i++){
-      drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.6 + (2 * i), -0.6 + (2 * i));
+      drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0, (2 * i));
     }
   }
 
   // Front & Back chairs
   for(var h = 0; h < 2; h++){
     for(var i = 0; i < 5; i++){
-      drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), (2 * i), false);
-      drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), (2 * i), true);
+      drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), false);
+      drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), true);
     }
   }
 
   modelMatrix = popMatrix();
 }
 
-function drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetZ, offsetZ_n){
+function drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ){
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(offsetX, offsetY, offsetZ);  // Translates to world position
+  
   // Draw table legs
   pushMatrix(modelMatrix);
-    modelMatrix.translate(offsetX, 0, offsetZ);
+    modelMatrix.translate(0.0, 0, 0.6);
     modelMatrix.rotate(50, 0, 0, 1);
     modelMatrix.scale(1.4, 0.1, 0.1);
     drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   pushMatrix(modelMatrix);
-    modelMatrix.translate(offsetX, 0, offsetZ);
+    modelMatrix.translate(0.0, 0, 0.6);
     modelMatrix.rotate(-50, 0, 0, 1);
     modelMatrix.scale(1.4, 0.1, 0.1);
     drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   pushMatrix(modelMatrix);
-    modelMatrix.translate(offsetX, 0, offsetZ_n);
+    modelMatrix.translate(0, 0, -0.6);
     modelMatrix.rotate(50, 0, 0, 1);
     modelMatrix.scale(1.4, 0.1, 0.1);
     drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   pushMatrix(modelMatrix);
-    modelMatrix.translate(offsetX, 0, offsetZ_n);
+    modelMatrix.translate(0, 0, -0.6);
     modelMatrix.rotate(-50, 0, 0, 1);
     modelMatrix.scale(1.4, 0.1, 0.1);
     drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
@@ -647,17 +709,19 @@ function drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offs
 
   // Draw Table Seat
   pushMatrix(modelMatrix);
-    modelMatrix.translate(offsetX, 0.6, offsetZ - 0.6);
+    modelMatrix.translate(0, 0.6, 0);
     modelMatrix.scale(1.4, 0.1, 1.4);
     modelMatrix.rotate(90, 0, 0, 1);
     modelMatrix.rotate(90, 0, 1, 0);
     drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix()
+
+  modelMatrix = popMatrix();
 }
 
-function drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetZ, rotate){
+function drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotate){
   pushMatrix(modelMatrix);
-  modelMatrix.translate(offsetX, 0, offsetZ);
+  modelMatrix.translate(offsetX, offsetY, offsetZ);
 
   if(rotate){
     modelMatrix.rotate(180, 0, 1, 0);
