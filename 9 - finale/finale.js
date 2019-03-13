@@ -83,15 +83,15 @@ var forward_backDist = 0.2;
 var left_rightDist = 0.2;
 var up_downDist = 0.2;
 var panup_downDist = 0.02;
-var angle = Math.PI;  // Radians
 
 // Key variables for camera
-var g_xCord = 42;
-var g_yCord = 7.5;
-var g_zCord = 25;
-var g_yLook = 7.23;
+var g_xCord = -3.9;
+var g_yCord = 2.5;
+var g_zCord = 28.8;
+var g_yLook = 2.43;
 var g_xDegree = 1;
 var g_zDegree = 1;
+var angle = Math.PI + 0.8;  // Radians
 
 // Key variables for key pressing
 // Allows multiple movements to (appear) to work together
@@ -473,6 +473,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
   drawDoors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawWindows(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawBeams(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+  drawDrains(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
 
   // Set the vertex coordinates and color (for the cube)
   var n = initPrismVertexBuffers(gl);
@@ -832,7 +833,9 @@ function drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offs
 }
 
 function drawDoors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+  // Main Building
   drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -2, -2.75, 5, 0, 0, 0, 0, false);
+  // Side Building
   drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 16.5, -2.75, 3, 0, 0, 0, 0, false);
   drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 17.5, -2.75, 3, 1, 1, 1, 0, false);
   drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 20, -2.75, 0, 0, 1, 0, 90, true);
@@ -852,32 +855,92 @@ function drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offse
 }
 
 function drawWindows(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
-  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -2, -2.75, 5, 0, 0, 0, 0 , false);
+  //Main Building
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -8, -2, 5, 0, 0, 0, 0 , false);
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 1, -2, 5, 0, 0, 0, 0 , false);
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 6, -2, 5, 0, 0, 0, 0 , false);
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -8, 2, 5, 0, 0, 0, 0 , false);
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 1, 2, 5, 0, 0, 0, 0 , false);
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 6, 2, 5, 0, 0, 0, 0 , false);
+  // Side Building
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 11, -2, 3, 0, 0, 0, 0 , false);
 }
 
 function drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, rotateAngle, rotate){
   gl.uniform4f(u_Color, 105/256, 105/256, 105/256, 1.0);
+  
   pushMatrix(modelMatrix);
-    modelMatrix.translate(offsetX, offsetY, offsetZ);
-    if(rotate){
-      modelMatrix.rotate(rotateAngle, rotateX, rotateY, rotateZ)
-    }
-    modelMatrix.scale(2.0, 4, 0.1); // Scale
+  modelMatrix.translate(offsetX, offsetY, offsetZ);
+
+  // Left Border (TRANSLATIONS BUITL AROUND THIS)
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, 0);
+    modelMatrix.scale(0.2, 2.0, 0.1); // Scale
     drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  // Top Border
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(1.4, 1.1, 0);
+    modelMatrix.rotate(90, 0, 0, 1);
+    modelMatrix.scale(0.2, 3.0, 0.1); // Scale
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  // Right Border
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(2.8, 0, 0.0);
+    modelMatrix.scale(0.2, 2.0, 0.1); // Scale
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  // Bottom Border
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(1.4, -1.1, 0);
+    modelMatrix.rotate(90, 0, 0, 1);
+    modelMatrix.scale(0.2, 3.0, 0.1); // Scale
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  gl.uniform4f(u_Color, 211/256, 211/256, 211/256, 1.0);
+
+  // Inside bit
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(1.4, 0, 0);
+    modelMatrix.rotate(90, 0, 0, 1);
+    modelMatrix.scale(2.1, 2.9, 0.05); // Scale
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
   modelMatrix = popMatrix();
 }
 
 function drawBeams(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
   gl.uniform4f(u_Color, 193/256, 154/256, 107/256, 1.0);
 
-  // The main building block
+  // Beam on main building
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, -0.5, 5);
-    modelMatrix.scale(20.0, 0.5, 0.25); // Scale
+    modelMatrix.translate(-0.25, -0.5, 5.125);
+    modelMatrix.scale(19.5, 0.5, 0.25); // Scale
     drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 }
 
+function drawDrains(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+  gl.uniform4f(u_Color, 0/256, 0/256, 0/256, 1.0);
+
+  // Horizontal beam on main building
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 3.9, 5.125);
+    modelMatrix.scale(20.0, 0.2, 0.25); // Scale
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  // Vertical beam on main building
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(9.75, -1, 5.125);
+    modelMatrix.rotate(90, 0, 0, 1);  
+    modelMatrix.scale(10.0, 0.2, 0.25); // Scale
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+}
 
 
 function drawbox(gl, u_ModelMatrix, u_NormalMatrix, n) {
