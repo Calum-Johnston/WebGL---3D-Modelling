@@ -79,11 +79,11 @@ var projMatrix = new Matrix4();  // The projection matrix
 var g_normalMatrix = new Matrix4();  // Coordinate transformation matrix for normals (used for lighting)
 
 // Key variables for movement
-
-var forward_backDist = 0.5;
-var left_rightDist = 0.5;
-var up_downDist = 0.5;
+var forward_backDist = 0.2;
+var left_rightDist = 0.2;
+var up_downDist = 0.2;
 var panup_downDist = 0.02;
+var angle = Math.PI;  // Radians
 
 // Key variables for camera
 var g_xCord = 42;
@@ -93,7 +93,18 @@ var g_yLook = 7.23;
 var g_xDegree = 1;
 var g_zDegree = 1;
 
-var angle = Math.PI;  // Radians
+// Key variables for key pressing
+// Allows multiple movements to (appear) to work together
+var g_wKey = false;
+var g_Akey = false;
+var g_Skey = false;
+var g_Dkey = false;
+var g_UPkey = false;
+var g_LEFTkey = false;
+var g_DOWNkey = false;
+var g_RIGHTkey = false;
+var g_SPACEkey = false;
+var g_Ckey = false;
 
 // Main function
 function main() {
@@ -151,13 +162,20 @@ function main() {
   lightDirection.normalize();     // Normalize
   gl.uniform3fv(u_LightDirection, lightDirection.elements);
 
-  // When a key is pressed 
-  document.onkeydown = function(ev){
-    keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, u_Color, canvas);
-  };
+  var drawWorld = function(){
+    document.onkeydown = function(ev){
+      checkKeyDown(ev);
+    };
+    document.onkeyup = function(ev){
+      checkKeyUp(ev);
+    };
+    moveCameraPerspective();
+    draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, u_Color, canvas);
+    requestAnimationFrame(drawWorld);
+  }
 
-  // Draws the initial structure
-  draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, u_Color, canvas);
+  // Calls drawWorld() continously
+  drawWorld();
 }
  
 
@@ -169,59 +187,60 @@ function main() {
 MOUSE & KEY PRESSING
 ===============================
 */
-// On key down
-function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, u_Color, canvas) {
+
+function checkKeyUp(ev){
+  switch(ev.keyCode){
+    case 40: g_UPkey = false; break; //Up Arrow Key
+    case 38: g_DOWNkey = false; break; //Down Arrow Key
+    case 39: g_RIGHTkey = false; break; //Right Arrow Key
+    case 37: g_LEFTkey = false; break; //Left Arrow Key
+    case 87: g_wKey = false; break; //W Key
+    case 83: g_Skey = false; break; //S Key
+    case 65: g_Akey = false; break; //A Key
+    case 68: g_Dkey = false; break; //D Key
+    case 32: g_SPACEkey = false; break; //Space Key
+    case 67: g_Ckey = false; break; //C Key
+  }
+}
+
+function checkKeyDown(ev){
+  switch(ev.keyCode){
+    case 40: g_UPkey = true; break; //Up Arrow Key
+    case 38: g_DOWNkey = true; break; //Down Arrow Key
+    case 39: g_RIGHTkey = true; break; //Right Arrow Key
+    case 37: g_LEFTkey = true; break; //Left Arrow Key
+    case 87: g_wKey = true; break; //W Key
+    case 83: g_Skey = true; break; //S Key
+    case 65: g_Akey = true; break; //A Key
+    case 68: g_Dkey = true; break; //D Key
+    case 32: g_SPACEkey = true; break; //Space Key
+    case 67: g_Ckey = true; break; //C Key
+  }
+}
+
+// Move Camera based on what key has been pressed
+function moveCameraPerspective() {
   document.getElementById("angle").innerHTML = angle;
   g_xDegree = Math.cos(angle) - Math.sin(angle);
   g_zDegree = Math.cos(angle) + Math.sin(angle);
-
-  switch (ev.keyCode) {
-    case 40: // Up arrow key 
-      g_yLook -= panup_downDist;
-      break;
-    case 38: // Down arrow key 
-      g_yLook += panup_downDist;
-      break;
-    case 39: // Right arrow key 
-      angle = (angle + Math.PI / 180) % (2 * Math.PI);
-      g_xDegree = Math.cos(angle) - Math.sin(angle);
-      g_zDegree = Math.cos(angle) + Math.sin(angle);
-      break;
-    case 37: // Left arrow key 
-      angle = (angle - Math.PI / 180) % (2 * Math.PI);
-      g_xDegree = Math.cos(angle) - Math.sin(angle);
-      g_zDegree = Math.cos(angle) + Math.sin(angle);
-      break;
-    case 87: // W key
-      g_xCord += g_xDegree * forward_backDist;
-      g_zCord += g_zDegree * forward_backDist;
-      break;
-    case 83: // S key
-      g_xCord -= g_xDegree * forward_backDist;
-      g_zCord -= g_zDegree * forward_backDist;
-      break;
-    case 65: // A key
-      g_xCord += g_zDegree * left_rightDist;
-      g_zCord -= g_xDegree * left_rightDist;
-      break;
-    case 68: // D key
-      g_xCord -= g_zDegree * left_rightDist;
-      g_zCord += g_xDegree * left_rightDist;
-      break;
-    case 32: // Space Key 
-      g_yCord += up_downDist;
-      g_yLook += up_downDist;
-      break;
-    case 67:  // C key
-      g_yCord -= up_downDist;
-      g_yLook -= up_downDist;
-      break;
-    default: 
-      return; // Skip drawing at no effective action
+  if(g_UPkey == true){ g_yLook -= panup_downDist; } //Up Arrow Key
+  if(g_DOWNkey == true) { g_yLook += panup_downDist; } //Down Arrow Key
+  if(g_RIGHTkey == true) { //Right Arrow Key
+    angle = (angle + Math.PI / 180) % (2 * Math.PI);
+    g_xDegree = Math.cos(angle) - Math.sin(angle);
+    g_zDegree = Math.cos(angle) + Math.sin(angle);
   }
-
-  // Draws the scene
-  draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, u_Color, canvas);
+  if(g_LEFTkey == true){ //Left Arrow Key
+    angle = (angle - Math.PI / 180) % (2 * Math.PI);
+    g_xDegree = Math.cos(angle) - Math.sin(angle);
+    g_zDegree = Math.cos(angle) + Math.sin(angle); 
+  }
+  if(g_wKey == true){ g_xCord += g_xDegree * forward_backDist; g_zCord += g_zDegree * forward_backDist;}
+  if(g_Skey == true){ g_xCord -= g_xDegree * forward_backDist; g_zCord -= g_zDegree * forward_backDist;}
+  if(g_Akey == true){ g_xCord += g_zDegree * left_rightDist; g_zCord -= g_xDegree * left_rightDist;}
+  if(g_Dkey == true){ g_xCord -= g_zDegree * left_rightDist; g_zCord += g_xDegree * left_rightDist;}
+  if(g_SPACEkey == true){ g_yCord += up_downDist; g_yLook += up_downDist;} 
+  if(g_Ckey == true){ g_yCord -= up_downDist; g_yLook -= up_downDist;}
 }
 
 
@@ -450,7 +469,10 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
   drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawSoil(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawHedges(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
-  drawTablesandChairs(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+  drawTablesChairsLights(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+  drawDoors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+  drawWindows(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+  drawBeams(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
 
   // Set the vertex coordinates and color (for the cube)
   var n = initPrismVertexBuffers(gl);
@@ -496,7 +518,7 @@ function drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
 }
 
 function drawBuildingRoof(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
-  gl.uniform4f(u_Color, 105/256, 105/256, 105/256, 1.0);
+  gl.uniform4f(u_Color, 51/256, 0/256, 51/256, 1.0);
 
   // Main roof
   pushMatrix(modelMatrix);
@@ -652,7 +674,7 @@ function drawHedges(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
   modelMatrix = popMatrix();
 }
 
-function drawTablesandChairs(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+function drawTablesChairsLights(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
   gl.uniform4f(u_Color, 230/256, 191/256, 131/256, 1.0);
 
   pushMatrix(modelMatrix);
@@ -671,6 +693,13 @@ function drawTablesandChairs(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
     for(var i = 0; i < 5; i++){
       drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), false);
       drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), true);
+    }
+  }
+
+  // Lights on tables
+  for(var h = 0; h < 2; h++){
+    for(var i = 0; i < 5; i++){
+      drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.7, (2 * i));
     }
   }
 
@@ -782,8 +811,72 @@ function drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offs
   modelMatrix = popMatrix();
 }
 
+function drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ){
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(offsetX, offsetY, offsetZ);
+  
+  gl.uniform4f(u_Color, 230/256, 191/256, 131/256, 1.0);
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0, 0);  // Translation
+    modelMatrix.scale(0.25, 0.1, 0.25); // Scale
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  
+  gl.uniform4f(u_Color, 256/256, 256/256, 0/256, 1.0);
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, 0.075, 0);
+    modelMatrix.scale(0.1, 0.05, 0.1);
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  modelMatrix = popMatrix();
+}
 
+function drawDoors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -2, -2.75, 5, 0, 0, 0, 0, false);
+  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 16.5, -2.75, 3, 0, 0, 0, 0, false);
+  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 17.5, -2.75, 3, 1, 1, 1, 0, false);
+  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 20, -2.75, 0, 0, 1, 0, 90, true);
+  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 20, -2.75, -1, 0, 1, 0, 90, true);
+}
 
+function drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, rotateAngle, rotate){
+  gl.uniform4f(u_Color, 105/256, 105/256, 105/256, 1.0);
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(offsetX, offsetY, offsetZ);
+    if(rotate){
+      modelMatrix.rotate(rotateAngle, rotateX, rotateY, rotateZ)
+    }
+    modelMatrix.scale(2.0, 4, 0.1); // Scale
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+}
+
+function drawWindows(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -2, -2.75, 5, 0, 0, 0, 0 , false);
+}
+
+function drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, rotateAngle, rotate){
+  gl.uniform4f(u_Color, 105/256, 105/256, 105/256, 1.0);
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(offsetX, offsetY, offsetZ);
+    if(rotate){
+      modelMatrix.rotate(rotateAngle, rotateX, rotateY, rotateZ)
+    }
+    modelMatrix.scale(2.0, 4, 0.1); // Scale
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+}
+
+function drawBeams(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+  gl.uniform4f(u_Color, 193/256, 154/256, 107/256, 1.0);
+
+  // The main building block
+  pushMatrix(modelMatrix);
+    modelMatrix.translate(0, -0.5, 5);
+    modelMatrix.scale(20.0, 0.5, 0.25); // Scale
+    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+}
 
 
 
