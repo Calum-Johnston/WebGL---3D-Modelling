@@ -700,7 +700,7 @@ function drawTablesChairsLights(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
   // Lights on tables
   for(var h = 0; h < 2; h++){
     for(var i = 0; i < 5; i++){
-      drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.7, (2 * i));
+      drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.7, (2 * i), 0, 0, 0, 0, false);
     }
   }
 
@@ -812,7 +812,7 @@ function drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offs
   modelMatrix = popMatrix();
 }
 
-function drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ){
+function drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, rotateAngle, rotate){
   pushMatrix(modelMatrix);
   modelMatrix.translate(offsetX, offsetY, offsetZ);
   
