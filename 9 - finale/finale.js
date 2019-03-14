@@ -8,46 +8,27 @@ SHADERS
 
 // Vertex shader program
 var VSHADER_SOURCE =
-  'attribute vec4 a_Position;\n' +
-  'attribute vec4 a_Normal;\n' +   
+  'attribute vec4 a_Position;\n' +  //!
+  'attribute vec4 a_Normal;\n' +    //!
 
-  'uniform mat4 u_ModelMatrix;\n' +    // Rotation/translation/scaling information
-  'uniform mat4 u_NormalMatrix;\n' +   // Transformation matrix of normal
-  'uniform mat4 u_ViewMatrix;\n' +     // Eye point, look up point, up direction
-  'uniform mat4 u_ProjMatrix;\n' +     // Sets viewing volume
+  'uniform mat4 u_ModelMatrix;\n' +    //! Rotation/translation/scaling information
+  'uniform mat4 u_NormalMatrix;\n' +   //! Transformation matrix of normal
+  'uniform mat4 u_ViewMatrix;\n' +     //! Eye point, look up point, up direction
+  'uniform mat4 u_ProjMatrix;\n' +     //! Sets viewing volume
  
-  'uniform vec3 u_LightColor;\n' +     // Light color
-  'uniform vec3 u_LightDirection;\n' + // Light direction
-  'uniform vec3 u_AmbientLight;\n' +   // Color of an ambient light
-  'varying vec4 v_Color;\n' +
-  'uniform vec4 u_Color;\n' +
- 
-  'uniform bool u_isLighting;\n' +    
+  'varying vec3 v_Normal;\n' +
+  'varying vec3 v_Position;\n' + //!
+  'varying vec4 v_Color;\n' + //!
+  'uniform vec4 u_Color;\n' + //!  
  
   'void main() {\n' +
-
      // Calculates position of vertex
   '  gl_Position = u_ProjMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;\n' +
   
-     // If the object requires lighting 
-  '  if(u_isLighting)\n' + 
-  '  {\n' +
-  '     vec3 normal = normalize((u_NormalMatrix * a_Normal).xyz);\n' +
-  
-        // The dot product of the light direction and the normal
-  '     float nDotL = max(dot(normal, u_LightDirection), 0.0);\n' +
-        // Calculate the color due to diffuse reflection
-  '     vec3 diffuse = u_LightColor * u_Color.rgb * nDotL;\n' +
-
-        // Calculate the color due to ambient reflection
-  '     vec3 ambient = u_AmbientLight * u_Color.rgb;\n' +
-  
-        // Adds surface colors due to diffuse and ambient reflection
-  '     v_Color = vec4(diffuse + ambient, u_Color.a);\n' +  '  }\n' +
-  '  else\n' +
-  '  {\n' +
-  '     v_Color = u_Color;\n' +
-  '  }\n' + 
+     // Calculates the vertex position in the world coordinate
+  '  v_Position = vec3(u_ModelMatrix * a_Position);\n' +
+  '  v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
+  '  v_Color = u_Color;\n' +
   '}\n';
 
 // Fragment shader program
@@ -55,11 +36,34 @@ var FSHADER_SOURCE =
   '#ifdef GL_ES\n' +
   'precision mediump float;\n' +
   '#endif\n' +
-  'varying vec4 v_Color;\n' +
-  'void main() {\n' +
 
-     // Gives the vertex a particular color
-  '  gl_FragColor = v_Color;\n' +
+  'uniform vec3 u_LightColor;\n' +
+  'uniform vec3 u_LightPosition;\n' +
+  'uniform vec3 u_LightIntensity;\n' +
+  'uniform vec3 u_AmbientLight;\n' +
+
+  'varying vec3 v_Normal;\n' +
+  'varying vec3 v_Position;\n' +
+  'varying vec4 v_Color;\n' +
+
+  'void main() {\n' +
+        // Normalise normal because it's interpolated and not 1.0 
+  '  vec3 normal = normalize(v_Normal);\n' +
+  
+        // Calculate the light direction and make it 1.0 in length
+  '  vec3 lightDirection = normalize(u_LightPosition - v_Position);\n' +
+
+        // The dot product of the light direction and the normal
+  '  float nDotL = max(dot(normal, lightDirection), 0.0);\n' +
+        
+        // Calculate the color due to diffuse reflection
+  '  vec3 diffuse = u_LightColor * v_Color.rgb * nDotL * u_LightIntensity;\n' +
+
+        // Calculate the color due to ambient reflection
+  '  vec3 ambient = u_AmbientLight * v_Color.rgb;\n' +
+  
+        // Adds surface colors due to diffuse and ambient reflection
+  '  gl_FragColor = vec4(diffuse + ambient, v_Color.a);\n' + 
   '}\n';
 
 
@@ -137,30 +141,18 @@ function main() {
   var u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
   var u_ProjMatrix = gl.getUniformLocation(gl.program, 'u_ProjMatrix');
   var u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
-  var u_LightDirection = gl.getUniformLocation(gl.program, 'u_LightDirection');
+  var u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
+  var u_LightIntensity = gl.getUniformLocation(gl.program, 'u_LightIntensity');
   var u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
   var u_Color = gl.getUniformLocation(gl.program, 'u_Color');
 
-  // Trigger to define whether lighting is used or not
-  var u_isLighting = gl.getUniformLocation(gl.program, 'u_isLighting'); 
-
   // Checks all uniform variables have been retrieved correctly
   if (!u_ModelMatrix || !u_ViewMatrix || !u_NormalMatrix ||
-      !u_ProjMatrix || !u_LightColor || !u_LightDirection ||
-      !u_isLighting || !u_Color) { 
+      !u_ProjMatrix || !u_LightColor || !u_LightPosition ||
+      !u_AmbientLight || !u_Color) { 
     console.log('Failed to get the storage locations of a variable');
     return;
   }
-
-  // LIGHT RELATED STUFF
-  // Set the light color 
-  gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
-  // Set the ambient light color 
-  gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
-  // Set the light direction (in the world coordinate)
-  var lightDirection = new Vector3([0.5, 3.0, 4.0]);
-  lightDirection.normalize();     // Normalize
-  gl.uniform3fv(u_LightDirection, lightDirection.elements);
 
   var drawWorld = function(){
     document.onkeydown = function(ev){
@@ -170,7 +162,8 @@ function main() {
       checkKeyUp(ev);
     };
     moveCameraPerspective();
-    draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, u_Color, canvas);
+    changeLighting();
+    draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_Color, canvas);
     requestAnimationFrame(drawWorld);
   }
 
@@ -243,7 +236,18 @@ function moveCameraPerspective() {
   if(g_Ckey == true){ g_yCord -= up_downDist; g_yLook -= up_downDist;}
 }
 
-
+// Change lighting based on user input
+function changeLighting(){
+  // LIGHT RELATED STUFF
+  // Set the light color 
+  gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
+  // Set the light position (in the world coordinate)
+  gl.uniform3f(u_LightPosition, -40, 30, 40);
+  // Set the light intensity
+  gl.uniform3f(u_LightIntensity, 1.2, 1.2, 1.2);
+  // Set the ambient light color 
+  gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+}
 
 
 
@@ -434,7 +438,7 @@ function popMatrix() {
 DRAWING
 ===============================
 */
-function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, u_Color, canvas) {
+function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_Color, canvas) {
 
   // Calculate the view matrix and the projection matrix
   viewMatrix.setLookAt(g_xCord, g_yCord, g_zCord, g_xCord + g_xDegree, g_yLook, g_zCord + g_zDegree, 0, 1, 0);
@@ -448,9 +452,6 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
 
   // Sets default color
   gl.uniform4f(u_Color, 1, 0, 0, 1); 
-
-  // Means lighting will always apply
-  gl.uniform1i(u_isLighting, true); // Will apply lighting
 
   drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, u_Color)
 
