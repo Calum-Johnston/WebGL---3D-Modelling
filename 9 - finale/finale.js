@@ -37,9 +37,9 @@ var FSHADER_SOURCE =
   'precision mediump float;\n' +
   '#endif\n' +
 
-  'uniform vec3 u_LightColor;\n' +
-  'uniform vec3 u_LightPosition;\n' +
-  'uniform vec3 u_LightIntensity;\n' +
+  'uniform vec3 u_LightColor[11];\n' +
+  'uniform vec3 u_LightPosition[11];\n' +
+  'uniform vec3 u_LightIntensity[11];\n' +
   'uniform vec3 u_AmbientLight;\n' +
 
   'varying vec3 v_Normal;\n' +
@@ -47,25 +47,30 @@ var FSHADER_SOURCE =
   'varying vec4 v_Color;\n' +
 
   'void main() {\n' +
-        // Normalise normal because it's interpolated and not 1.0 
+
+  '  vec3 diffuse;\n' +
+
+     // Normalise normal because it's interpolated and not 1.0 
   '  vec3 normal = normalize(v_Normal);\n' +
   
+  // Loops through all light sources
+  '  for(int x = 0; x < 11; x++){\n' +
         // Calculate the light direction and make it 1.0 in length
-  '  vec3 lightDirection = normalize(u_LightPosition - v_Position);\n' +
+  '    vec3 lightDirection = normalize(u_LightPosition[x] - v_Position.xyz);\n' +
 
         // The dot product of the light direction and the normal
-  '  float nDotL = max(dot(normal, lightDirection), 0.0);\n' +
+  '    float nDotL = max(dot(normal, lightDirection), 0.0);\n' +
         
         // Calculate the color due to diffuse reflection
-  '  vec3 diffuse = u_LightColor * v_Color.rgb * nDotL * u_LightIntensity;\n' +
+  '    diffuse += u_LightColor[x] * v_Color.rgb * nDotL * u_LightIntensity[x];\n' +
+  '  }\n' +
 
-        // Calculate the color due to ambient reflection
+     // Calculate the color due to ambient reflection
   '  vec3 ambient = u_AmbientLight * v_Color.rgb;\n' +
-  
-        // Adds surface colors due to diffuse and ambient reflection
+
+     // Adds surface colors due to diffuse and ambient reflection
   '  gl_FragColor = vec4(diffuse + ambient, v_Color.a);\n' + 
   '}\n';
-
 
 
 
@@ -140,16 +145,11 @@ function main() {
   var u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
   var u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
   var u_ProjMatrix = gl.getUniformLocation(gl.program, 'u_ProjMatrix');
-  var u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
-  var u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
-  var u_LightIntensity = gl.getUniformLocation(gl.program, 'u_LightIntensity');
-  var u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
   var u_Color = gl.getUniformLocation(gl.program, 'u_Color');
 
   // Checks all uniform variables have been retrieved correctly
   if (!u_ModelMatrix || !u_ViewMatrix || !u_NormalMatrix ||
-      !u_ProjMatrix || !u_LightColor || !u_LightPosition ||
-      !u_AmbientLight || !u_Color) { 
+      !u_ProjMatrix || !u_Color) { 
     console.log('Failed to get the storage locations of a variable');
     return;
   }
@@ -162,9 +162,10 @@ function main() {
       checkKeyUp(ev);
     };
     moveCameraPerspective();
-    changeLighting();
+    changeLighting(gl);
     draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_Color, canvas);
     requestAnimationFrame(drawWorld);
+    return false;
   }
 
   // Calls drawWorld() continously
@@ -237,16 +238,65 @@ function moveCameraPerspective() {
 }
 
 // Change lighting based on user input
-function changeLighting(){
-  // LIGHT RELATED STUFF
-  // Set the light color 
-  gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
-  // Set the light position (in the world coordinate)
-  gl.uniform3f(u_LightPosition, -40, 30, 40);
-  // Set the light intensity
-  gl.uniform3f(u_LightIntensity, 1.2, 1.2, 1.2);
-  // Set the ambient light color 
-  gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+function changeLighting(gl){
+  
+  var u_LightColor;
+  var u_LightPosition;
+  var u_LightIntensity; 
+
+  //Main World Light (controll day and night);
+  u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor[0]');
+  u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition[0]');
+  u_LightIntensity = gl.getUniformLocation(gl.program, 'u_LightIntensity[0]');
+  gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);   // Set the light color 
+  gl.uniform3f(u_LightPosition, -40, 30, 40);   // Set the light position (in the world coordinate)
+  gl.uniform3f(u_LightIntensity, 1.0, 1.0, 1.0); // Set the light intensity
+  
+/*  // Lights on tables
+  for(var h = 0; h < 2; h++){
+    for(var i = 0; i < 5; i++){
+      drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.7, (2 * i), 0, 0, 0, 0, false);
+    }
+    -3.5 + 0.7 + 0.1, 22 - 0.5 + (5 * x)
+  } 22.0, -3.5, 1.0*/
+
+  // Lighting for table lights
+  var count = 1;
+  for(var x = 0; x < 2; x++){
+    for(var y = 0; y < 4; y++){
+      u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor[' + count + ']');
+      u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition[' + count + ']');
+      u_LightIntensity = gl.getUniformLocation(gl.program, 'u_LightIntensity[' + count + ']');
+      //lightIndividualBulb(gl, u_LightColor, u_LightPosition, u_LightIntensity, 22 + (2 * y), -1.5, 1.5 - (5 * x));
+      lightIndividualBulb(gl, u_LightColor, u_LightPosition, u_LightIntensity, 22 , -2.5, 1.5);
+      count += 1; 
+    }
+  }
+
+  u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor[' + 9 + ']');
+  u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition[' + 9 + ']');
+  u_LightIntensity = gl.getUniformLocation(gl.program, 'u_LightIntensity[' + 9 + ']');
+  gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);   // Set the light color 
+  gl.uniform3f(u_LightPosition, 22, -2.5, 1.5);   // Set the light position (in the world coordinate)
+  gl.uniform3f(u_LightIntensity, 0.1, 0.1, 0.1); // Set the light intensity
+  u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor[' + 10 + ']');
+  u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition[' + 10 + ']');
+  u_LightIntensity = gl.getUniformLocation(gl.program, 'u_LightIntensity[' + 10 + ']');
+  gl.uniform3f(u_LightColor, 1, 1, 1);   // Set the light color 
+  gl.uniform3f(u_LightPosition, 24, -2.5, 1.5);   // Set the light position (in the world coordinate)
+  gl.uniform3f(u_LightIntensity, 0.1, 0.1, 0.1); // Set the light intensity
+
+
+
+  // Ambient Light for World
+  //var u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
+  //gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+}
+
+function lightIndividualBulb(gl, u_LightColor, u_LightPosition, u_LightIntensity, offsetX, offsetY, offsetZ){
+  gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);   // Set the light color 
+  gl.uniform3f(u_LightPosition, offsetX, offsetY, offsetZ);   // Set the light position (in the world coordinate)
+  gl.uniform3f(u_LightIntensity, 0.1, 0.1, 0.1); // Set the light intensity 
 }
 
 
