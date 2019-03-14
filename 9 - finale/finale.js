@@ -37,18 +37,20 @@ var FSHADER_SOURCE =
   'precision mediump float;\n' +
   '#endif\n' +
 
-  'uniform vec3 u_LightColor[11];\n' +
-  'uniform vec3 u_LightPosition[11];\n' +
-  'uniform vec3 u_LightIntensity[11];\n' +
+  'uniform vec3 u_LightColor[1];\n' +
+  'uniform vec3 u_LightPosition[1];\n' +
+  'uniform vec3 u_LightIntensity[1];\n' +
   'uniform vec3 u_AmbientLight;\n' +
 
   'varying vec3 v_Normal;\n' +
   'varying vec3 v_Position;\n' +
   'varying vec4 v_Color;\n' +
 
+  'vec3 ambient;\n' +
+
   'void main() {\n' +
 
-  '  vec3 diffuse;\n' +
+  '  vec3 diffuse = vec3(0, 0, 0);\n' +
 
      // Normalise normal because it's interpolated and not 1.0 
   '  vec3 normal = normalize(v_Normal);\n' +
@@ -62,11 +64,11 @@ var FSHADER_SOURCE =
   '    float nDotL = max(dot(normal, lightDirection), 0.0);\n' +
         
         // Calculate the color due to diffuse reflection
-  '    diffuse += u_LightColor[x] * v_Color.rgb * nDotL * u_LightIntensity[x];\n' +
+  '    diffuse = diffuse + u_LightColor[x] * v_Color.rgb * nDotL * u_LightIntensity[x];\n' +
   '  }\n' +
 
      // Calculate the color due to ambient reflection
-  '  vec3 ambient = u_AmbientLight * v_Color.rgb;\n' +
+  '  ambient = u_AmbientLight * v_Color.rgb;\n' +
 
      // Adds surface colors due to diffuse and ambient reflection
   '  gl_FragColor = vec4(diffuse + ambient, v_Color.a);\n' + 
@@ -240,17 +242,26 @@ function moveCameraPerspective() {
 // Change lighting based on user input
 function changeLighting(gl){
   
-  var u_LightColor;
-  var u_LightPosition;
-  var u_LightIntensity; 
+  var u_LightColor = [2];
+  var u_LightPosition = [2];
+  var u_LightIntensity = [2]; 
 
-  //Main World Light (controll day and night);
-  u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor[0]');
-  u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition[0]');
-  u_LightIntensity = gl.getUniformLocation(gl.program, 'u_LightIntensity[0]');
-  gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);   // Set the light color 
-  gl.uniform3f(u_LightPosition, -40, 30, 40);   // Set the light position (in the world coordinate)
-  gl.uniform3f(u_LightIntensity, 1.0, 1.0, 1.0); // Set the light intensity
+  /*/Main World Light (controll day and night);
+  u_LightColor[0] = gl.getUniformLocation(gl.program, 'u_LightColor[0]');
+  u_LightPosition[0] = gl.getUniformLocation(gl.program, 'u_LightPosition[0]');
+  u_LightIntensity[0] = gl.getUniformLocation(gl.program, 'u_LightIntensity[0]');
+  gl.uniform3f(u_LightColor[0], 1.0, 1.0, 1.0);   // Set the light color 
+  gl.uniform3f(u_LightPosition[0], 60, 22, 30);   // Set the light position (in the world coordinate)
+  gl.uniform3f(u_LightIntensity[0], 0, 0, 0); // Set the light intensity
+*/
+
+  u_LightColor[1] = gl.getUniformLocation(gl.program, 'u_LightColor[0]');
+  u_LightPosition[1] = gl.getUniformLocation(gl.program, 'u_LightPosition[0]');
+  u_LightIntensity[1] = gl.getUniformLocation(gl.program, 'u_LightIntensity[0]');
+  gl.uniform3f(u_LightColor[1], 1.0, 1.0, 1.0);   // Set the light color 
+  gl.uniform3f(u_LightPosition[1], 24, -3.1, -9);   // Set the light position (in the world coordinate)
+  gl.uniform3f(u_LightIntensity[1], 0.1, 0.1, 0.1); // Set the light intensity
+
   
 /*  // Lights on tables
   for(var h = 0; h < 2; h++){
@@ -258,7 +269,7 @@ function changeLighting(gl){
       drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.7, (2 * i), 0, 0, 0, 0, false);
     }
     -3.5 + 0.7 + 0.1, 22 - 0.5 + (5 * x)
-  } 22.0, -3.5, 1.0*/
+  } 22.0, -3.5, 1.0
 
   // Lighting for table lights
   var count = 1;
@@ -284,7 +295,7 @@ function changeLighting(gl){
   u_LightIntensity = gl.getUniformLocation(gl.program, 'u_LightIntensity[' + 10 + ']');
   gl.uniform3f(u_LightColor, 1, 1, 1);   // Set the light color 
   gl.uniform3f(u_LightPosition, 24, -2.5, 1.5);   // Set the light position (in the world coordinate)
-  gl.uniform3f(u_LightIntensity, 0.1, 0.1, 0.1); // Set the light intensity
+  gl.uniform3f(u_LightIntensity, 0.1, 0.1, 0.1); // Set the light intensity*/
 
 
 
