@@ -568,6 +568,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
   drawWindows(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawBeams(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawDrains(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+  drawSign(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
 
   // Set the vertex coordinates and color (for the cube)
   var n = initPrismVertexBuffers(gl);
@@ -948,7 +949,6 @@ function drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offs
   if (rotate) {
     modelMatrix.rotate(180, 0, 1, 0);
     if(backSide){
-      console.log("rotatae and backside true");
       modelMatrix.translate(-1.5 - chairMovement, 0, 0);
     }else{
       modelMatrix.translate(-1.5 - chairMovementRotate, 0, 0);
@@ -1215,6 +1215,39 @@ function drawDrains(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
   modelMatrix = popMatrix();
 }
 
+function drawSign(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+  gl.uniform4f(u_Color, 256 / 256, 256 / 256, 256 / 256, 1.0);
+
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(16, -3, 6);
+  drawSignSide(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+  modelMatrix.setTranslate(16.5, -3, 6);
+  modelMatrix.rotate(180, 0, 1,0);
+  drawSignSide(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+
+  modelMatrix = popMatrix();
+}
+
+function drawSignSide(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0, 0, 0);
+  modelMatrix.rotate(70, 0, 0, 1); 
+  modelMatrix.scale(1.2, 0.1, 1); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(-0.03, -0.1, -0.5);
+  modelMatrix.rotate(70, 0, 0, 1); 
+  modelMatrix.scale(1.4, 0.1, 0.1); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(-0.03, -0.1, 0.5);
+  modelMatrix.rotate(70, 0, 0, 1); 
+  modelMatrix.scale(1.4, 0.1, 0.1); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+}
 
 function drawbox(gl, u_ModelMatrix, u_NormalMatrix, n) {
   pushMatrix(modelMatrix);
