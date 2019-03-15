@@ -89,13 +89,13 @@ var up_downDist = 0.2;
 var panup_downDist = 0.02;
 
 // Key variables for camera
-var g_xCord = -3.9;
-var g_yCord = 2.5;
-var g_zCord = 28.8;
-var g_yLook = 2.43;
+var g_xCord = 40;
+var g_yCord = 30;
+var g_zCord = 80;
+var g_yLook = 29.6;
 var g_xDegree = 1;
 var g_zDegree = 1;
-var angle = Math.PI + 0.8;  // Radians
+var angle = Math.PI + 0.4;  // Radians
 
 // Key variables for key pressing
 // Allows multiple movements to (appear) to work together
@@ -120,6 +120,7 @@ var lightIntensity = 0.2;
 // Key variables for movement of objects
 var doorMovementAngle = 0;
 var chairMovement = 0;
+var chairMovementRotate = 0;
 
 // Main function
 function main() {
@@ -245,7 +246,7 @@ function checkKeyDown(ev) {
 
 // Move Camera based on what key has been pressed
 function moveCameraPerspective() {
-  document.getElementById("angle").innerHTML = angle;
+  //document.getElementById("angle").innerHTML = angle;
   g_xDegree = Math.cos(angle) - Math.sin(angle);
   g_zDegree = Math.cos(angle) + Math.sin(angle);
   if (g_UPkey == true) { g_yLook -= panup_downDist; } //Up Arrow Key
@@ -299,6 +300,7 @@ function renderLighting(gl, u_LightColor, u_LightDirection, u_LightIntensity, u_
 
 function moveObjects(){
   moveDoor();
+  moveChairs();
 } 
 
 function moveDoor(){
@@ -311,6 +313,44 @@ function moveDoor(){
     doorMovementAngle -= 1;
     if(doorMovementAngle < 0){
       doorMovementAngle = 0;
+    }
+  }
+}
+
+function moveChairs(){
+  if(g_4Key == true){
+    if(chairMovement < 0.3){
+      chairMovement += 0.01;
+      chairMovementRotate += 0.01
+    }else{
+      chairMovementRotate += 0.01;
+      if(chairMovementRotate > 0.5){
+        chairMovementRotate = 0.5
+      }
+    }
+  }else{
+    if(chairMovementRotate > 0.3){
+      chairMovement -= 0.01;
+      chairMovementRotate -= 0.01;
+    }else{
+
+    }
+  }
+  if(g_4Key == true){
+    chairMovement += 0.01; chairMovementRotate += 0.01;
+    if(chairMovement > 0.3){
+      chairMovement = 0.3;
+    }
+    if(chairMovementRotate > 0.5){
+      chairMovementRotate = 0.5
+    }
+  }else{
+    chairMovement -= 0.01; chairMovementRotate -= 0.01;
+    if(chairMovement < 0.0){
+      chairMovement = 0.0;
+    }
+    if(chairMovementRotate < 0.0){
+      chairMovementRotate = 0.0;
     }
   }
 }
@@ -509,7 +549,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
 
   // Calculate the view matrix and the projection matrix
   viewMatrix.setLookAt(g_xCord, g_yCord, g_zCord, g_xCord + g_xDegree, g_yLook, g_zCord + g_zDegree, 0, 1, 0);
-  projMatrix.setPerspective(40, canvas.width / canvas.height, 1, 100);
+  projMatrix.setPerspective(40, canvas.width / canvas.height, 1, 150);
   // Pass the view, and projection matrix to the uniform variable respectively
   gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
   gl.uniformMatrix4fv(u_ProjMatrix, false, projMatrix.elements);
@@ -558,8 +598,8 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
 
   drawBuildingRoof(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
 
-  document.getElementById("Position").innerHTML = "Position = (" + g_xCord + ", " + g_yCord + ", " + g_zCord + ")";
-  document.getElementById("Direction").innerHTML = "Direction = (" + g_xCord + g_xDegree + ", " + g_yLook + ", " + g_zCord + g_zDegree + ")";
+  //document.getElementById("Position").innerHTML = "Position = (" + g_xCord + ", " + g_yCord + ", " + g_zCord + ")";
+  //document.getElementById("Direction").innerHTML = "Direction = (" + g_xCord + g_xDegree + ", " + g_yLook + ", " + g_zCord + g_zDegree + ")";
 }
 
 function drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
@@ -800,8 +840,13 @@ function drawTablesChairsLights(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
   // Front & Back chairs
   for (var h = 0; h < 2; h++) {
     for (var i = 0; i < 6; i++) {
-      drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), false);
-      drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), true);
+      if(h == 1){
+        drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), false, true);
+        drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), true, true);
+      }else{
+        drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), false, false);
+        drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), true, false);
+      }
     }
   }
 
@@ -859,7 +904,7 @@ function drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offs
   modelMatrix = popMatrix();
 }
 
-function drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotate) {
+function drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotate, backSide) {
   gl.uniform4f(u_Color, 182 / 256, 155 / 256, 76 / 256, 1.0);
 
   pushMatrix(modelMatrix);
@@ -867,7 +912,18 @@ function drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offs
 
   if (rotate) {
     modelMatrix.rotate(180, 0, 1, 0);
-    modelMatrix.translate(-1.5, 0, 0);
+    if(backSide){
+      console.log("rotatae and backside true");
+      modelMatrix.translate(-1.5 - chairMovement, 0, 0);
+    }else{
+      modelMatrix.translate(-1.5 - chairMovementRotate, 0, 0);
+    }
+  }else{
+    if(backSide){
+      modelMatrix.translate(-chairMovementRotate, 0, 0);
+    }else{
+      modelMatrix.translate(-chairMovement, 0, 0);
+    }
   }
 
   // Chair legs
@@ -1042,6 +1098,46 @@ function drawBeams(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
   pushMatrix(modelMatrix);
   modelMatrix.translate(-0.25, -0.5, 5.125);
   modelMatrix.scale(19.5, 0.5, 0.25); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  gl.uniform4f(u_Color, 70 / 256, 70 / 256, 70 / 256, 1.0);
+  // Roof beams
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(10.15, 6.5, 2.5);
+  modelMatrix.rotate(90, 0, 1, 0); modelMatrix.rotate(45, 0, 0, 1);
+  modelMatrix.scale(7.5, 0.5, 0.25); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(10.15, 6.5, -2.5);
+  modelMatrix.rotate(90, 0, 1, 0); modelMatrix.rotate(-45, 0, 0, 1);
+  modelMatrix.scale(7.5, 0.5, 0.25); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(-10.15, 6.5, 2.5);
+  modelMatrix.rotate(90, 0, 1, 0); modelMatrix.rotate(45, 0, 0, 1);
+  modelMatrix.scale(7.5, 0.5, 0.25); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(-10.15, 6.5, -2.5);
+  modelMatrix.rotate(90, 0, 1, 0); modelMatrix.rotate(-45, 0, 0, 1);
+  modelMatrix.scale(7.5, 0.5, 0.25); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  // Smaller roof beams
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(20.15, 2.10, 1);
+  modelMatrix.rotate(90, 0, 1, 0); modelMatrix.rotate(45, 0, 0, 1);
+  modelMatrix.scale(6, 0.5, 0.25); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(20.15, 2.10, -3);
+  modelMatrix.rotate(90, 0, 1, 0); modelMatrix.rotate(-45, 0, 0, 1);
+  modelMatrix.scale(6, 0.5, 0.25); // Scale
   drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 }
