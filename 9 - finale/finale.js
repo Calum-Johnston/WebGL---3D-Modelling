@@ -117,6 +117,10 @@ var g_4Key = false;
 // Key variables for light events
 var lightIntensity = 0.2;
 
+// Key variables for movement of objects
+var doorMovementAngle = 0;
+var chairMovement = 0;
+
 // Main function
 function main() {
   // Retrieve <canvas> element
@@ -136,7 +140,7 @@ function main() {
   }
 
   // Set clear color and enable hidden surface removal
-  gl.clearColor(204 / 256, 204 / 256, 204 / 256, 1.0);  // Blue
+  gl.clearColor(135 / 256, 206 / 256, 235 / 256, 1.0);  // Blue
   gl.enable(gl.DEPTH_TEST);
 
   // Clear color and depth buffer
@@ -275,11 +279,17 @@ function renderLighting(gl, u_LightColor, u_LightDirection, u_LightIntensity, u_
   if(g_1Key == true){
     if(lightIntensity > 0){
       lightIntensity -= 0.001;
+      if(lightIntensity < 0.05){
+        gl.clearColor(0 / 256, 0 / 256, 0 / 256, 1.0);  // Blue
+      }
     }
   }
   if(g_2Key == true){
     if(lightIntensity < 0.2){
       lightIntensity += 0.001;
+      if(lightIntensity > 0.d15){
+        gl.clearColor(135 / 256, 206 / 256, 235 / 256, 1.0);  // Blue
+      }
     }
   }
 
@@ -292,8 +302,16 @@ function moveObjects(){
 } 
 
 function moveDoor(){
-  if(true){
-
+  if(g_3Key == true){
+    doorMovementAngle += 1
+    if(doorMovementAngle > 90){  //Opens to around 90 degrees
+      doorMovementAngle = 90;
+    }
+  }else{
+    doorMovementAngle -= 1;
+    if(doorMovementAngle < 0){
+      doorMovementAngle = 0;
+    }
   }
 }
 
@@ -518,7 +536,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
   modelMatrix.setTranslate(0, 0, 0);  // Translation (No translation is supported here)
 
   drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color)
-  drawFloor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+  drawFloors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawSoil(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawHedges(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
@@ -600,13 +618,45 @@ function drawBuildingRoof(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
 }
 
 // Draws the floor
-function drawFloor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
-  gl.uniform4f(u_Color, 256 / 256, 256 / 256, 64 / 256, 1.0);
+function drawFloors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
+  gl.uniform4f(u_Color, 44 / 256, 176 / 256, 55 / 256, 1.0);
   pushMatrix(modelMatrix);
-  modelMatrix.translate(13, -4, 0);
+  modelMatrix.translate(13, -4, 5);
   modelMatrix.rotate(90, 0, 0, 1);
   modelMatrix.rotate(90, 0, 1, 0);
-  modelMatrix.scale(25.0, 50.0, 0.1);
+  modelMatrix.scale(40.0, 50.0, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  gl.uniform4f(u_Color, 82 / 256, 77 / 256, 64 / 256, 1.0);
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(13, -3.9, 15);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(10.0, 50.0, 0.15);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  // Left Side
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(-12, 2.25, 5);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(40.0, 12.5, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  // Back Side
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(13, 2.25, -15);
+  modelMatrix.scale(50.0, 12.5, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  // Front side
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(38, 2.25, 5);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(40.0, 12.5, 0.1);
   drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 }
@@ -753,7 +803,7 @@ function drawTablesChairsLights(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
   // Lights on tables
   for (var h = 0; h < 2; h++) {
     for (var i = 0; i < 5; i++) {
-      drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.7, (2 * i), 0, 0, 0, 0, false);
+      drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.7, (2 * i));
     }
   }
 
@@ -865,7 +915,7 @@ function drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offs
   modelMatrix = popMatrix();
 }
 
-function drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, rotateAngle, rotate) {
+function drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ) {
   pushMatrix(modelMatrix);
   modelMatrix.translate(offsetX, offsetY, offsetZ);
 
@@ -887,20 +937,27 @@ function drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offs
 
 function drawDoors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
   // Main Building
-  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -2, -2.75, 5, 0, 0, 0, 0, false);
+  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -2, -2.75, 5, 0, 0, 0, 0, false, true);
   // Side Building
-  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 16.5, -2.75, 3, 0, 0, 0, 0, false);
-  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 17.5, -2.75, 3, 1, 1, 1, 0, false);
-  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 20, -2.75, 0, 0, 1, 0, 90, true);
-  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 20, -2.75, -1, 0, 1, 0, 90, true);
+  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 16.5, -2.75, 3, 0, 0, 0, 0, false, false);
+  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 17.5, -2.75, 3, 1, 1, 1, 0, false, false);
+  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 20, -2.75, 0, 0, 1, 0, 90, true, false);
+  drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 20, -2.75, -1, 0, 1, 0, 90, true), false;
 }
 
-function drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, rotateAngle, rotate) {
+function drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, rotateAngle, rotate, openDoor) {
   gl.uniform4f(u_Color, 105 / 256, 105 / 256, 105 / 256, 1.0);
+
   pushMatrix(modelMatrix);
   modelMatrix.translate(offsetX, offsetY, offsetZ);
-  if (rotate) {
-    modelMatrix.rotate(rotateAngle, rotateX, rotateY, rotateZ)
+  
+  if(openDoor){
+    modelMatrix.translate(Math.cos((doorMovementAngle * Math.PI) / 180), 0, Math.sin((doorMovementAngle * Math.PI) / 180) );
+    modelMatrix.rotate(-doorMovementAngle, 0, 1, 0);
+  }
+
+  if(rotate) {
+    modelMatrix.rotate(rotateAngle, rotateX, rotateY, rotateZ);
   }
   modelMatrix.scale(2.0, 4, 0.1); // Scale
   drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
