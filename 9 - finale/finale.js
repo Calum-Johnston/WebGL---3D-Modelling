@@ -25,6 +25,7 @@ var VSHADER_SOURCE =
   'uniform vec4 u_Color;\n' +
 
   'uniform bool u_isLighting;\n' +
+  'uniform bool u_isDirectional;\n' +
 
   'void main() {\n' +
 
@@ -305,14 +306,11 @@ function moveObjects(){
 
 function moveDoor(){
   if(g_3Key == true){
-    doorMovementAngle += 1
-    if(doorMovementAngle > 90){  //Opens to around 90 degrees
-      doorMovementAngle = 90;
-    }
+    if(doorMovementAngle < 91){  //Opens to around 90 degrees
+      doorMovementAngle += 1    }
   }else{
-    doorMovementAngle -= 1;
-    if(doorMovementAngle < 0){
-      doorMovementAngle = 0;
+    if(doorMovementAngle > 0){
+      doorMovementAngle -= 1;
     }
   }
 }
@@ -320,37 +318,21 @@ function moveDoor(){
 function moveChairs(){
   if(g_4Key == true){
     if(chairMovement < 0.3){
-      chairMovement += 0.01;
-      chairMovementRotate += 0.01
+      chairMovement += 0.005; chairMovementRotate += 0.005;
     }else{
-      chairMovementRotate += 0.01;
+      chairMovementRotate += 0.005;
       if(chairMovementRotate > 0.5){
         chairMovementRotate = 0.5
       }
     }
   }else{
     if(chairMovementRotate > 0.3){
-      chairMovement -= 0.01;
-      chairMovementRotate -= 0.01;
+      chairMovementRotate -= 0.005;
     }else{
-
-    }
-  }
-  if(g_4Key == true){
-    chairMovement += 0.01; chairMovementRotate += 0.01;
-    if(chairMovement > 0.3){
-      chairMovement = 0.3;
-    }
-    if(chairMovementRotate > 0.5){
-      chairMovementRotate = 0.5
-    }
-  }else{
-    chairMovement -= 0.01; chairMovementRotate -= 0.01;
-    if(chairMovement < 0.0){
-      chairMovement = 0.0;
-    }
-    if(chairMovementRotate < 0.0){
-      chairMovementRotate = 0.0;
+      chairMovement -= 0.005; chairMovementRotate -= 0.005;
+      if(chairMovement < 0){
+        chairMovement = 0; chairMovementRotate = 0;
+      }
     }
   }
 }
@@ -575,8 +557,9 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_i
   // Do translations that apply to all!
   modelMatrix.setTranslate(0, 0, 0);  // Translation (No translation is supported here)
 
-  drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color)
+  drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawFloors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
+  drawRoadMarkings(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawSoil(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawHedges(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
@@ -659,7 +642,7 @@ function drawBuildingRoof(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
 
 // Draws the floor
 function drawFloors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
-  gl.uniform4f(u_Color, 44 / 256, 176 / 256, 55 / 256, 1.0);
+  gl.uniform4f(u_Color, 209 / 256, 209 / 256, 208 / 256, 1.0);
   pushMatrix(modelMatrix);
   modelMatrix.translate(13, -4, 5);
   modelMatrix.rotate(90, 0, 0, 1);
@@ -668,12 +651,23 @@ function drawFloors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
   drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
+  // Road
   gl.uniform4f(u_Color, 82 / 256, 77 / 256, 64 / 256, 1.0);
   pushMatrix(modelMatrix);
   modelMatrix.translate(13, -3.9, 15);
   modelMatrix.rotate(90, 0, 0, 1);
   modelMatrix.rotate(90, 0, 1, 0);
   modelMatrix.scale(10.0, 50.0, 0.15);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+
+  //Path
+  gl.uniform4f(u_Color, 44 / 256, 176 / 256, 55 / 256, 1.0);
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(27, -3.9, -1);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(9.0, 14.0, 0.15);
   drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
@@ -700,6 +694,47 @@ function drawFloors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
   drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 }
+
+function drawRoadMarkings(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+  gl.uniform4f(u_Color, 256 / 256, 256 / 256, 256 / 256, 1.0);
+  
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(-7, -3.85, 15);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(1.0, 8.0, 0.175);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(3, -3.85, 15);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(1.0, 8.0, 0.175);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(13, -3.85, 15);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(1.0, 8.0, 0.175);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(23, -3.85, 15);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(1.0, 8.0, 0.175);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(33, -3.85, 15);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(1.0, 8.0, 0.175);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
+}
+
 
 // Draws the floor
 function drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
@@ -825,8 +860,8 @@ function drawTablesChairsLights(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
 
   // Table and Chairs by entrance
   drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -9.6, 0, 3);
-  drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -10.4, 0, 3, false);
-  drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -10.4, 0, 3, true);
+  drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -10.4, 0, 3, false,false);
+  drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -10.4, 0, 3, true, true);
   drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.7, (2 * i));
 
   modelMatrix.rotate(90, 0, 1, 0);
