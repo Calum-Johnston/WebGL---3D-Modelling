@@ -1,0 +1,19 @@
+=====
+Instructions on how to run the program
+=====
+1. Extract the ZIP file provided into a folder
+2. Ensure all content is in the same directory (WhiteChurch.html & WhiteChurch.js)
+3. Open firefox and navigate to the HTML file
+4. Done!
+
+
+=====
+Description
+=====
+Provided is a 3D model of WhiteChurch and it's surrounding environment (see photo provided) written and rendered using WebGL. The model consists of the WhiteChurch building itself, along with it's beer garden, some landscape modelling (such as paths and roads) and a few environmental objects to enrich the  environment (e.g. tables and chairs). It has been coloured appropriately to best represent the scene shown in the photo.
+
+CAMERA MOVEMENT: To explore the model the movement keys 'WASD' are provided to change the cameras position, and the arrow keys can be used to change the cameras view direction. In addition 'SPACE' can be used to move upwards and 'C' used for moving downwards.
+
+LIGHTING: To change the lighting between day and night you can use the keys '1' and '2', where '1' will gradually decrease daylight and '2' increase it.
+
+OBJECT MOVEMENT: Use '3' to open and close the front door of the building, and use '4' to pull the chairs out from under the table (Note: the chairs move different amounts due to space, so chairs closer to a wall pull out less)
