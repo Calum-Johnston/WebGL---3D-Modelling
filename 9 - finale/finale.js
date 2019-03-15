@@ -279,7 +279,7 @@ function renderLighting(gl, u_LightColor, u_LightDirection, u_LightIntensity, u_
   if(g_1Key == true){
     if(lightIntensity > 0){
       lightIntensity -= 0.001;
-      if(lightIntensity < 0.05){
+      if(lightIntensity < 0.1){
         gl.clearColor(0 / 256, 0 / 256, 0 / 256, 1.0);  // Blue
       }
     }
@@ -287,7 +287,7 @@ function renderLighting(gl, u_LightColor, u_LightDirection, u_LightIntensity, u_
   if(g_2Key == true){
     if(lightIntensity < 0.2){
       lightIntensity += 0.001;
-      if(lightIntensity > 0.d15){
+      if(lightIntensity > 0.1){
         gl.clearColor(135 / 256, 206 / 256, 235 / 256, 1.0);  // Blue
       }
     }
@@ -590,7 +590,7 @@ function drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
 }
 
 function drawBuildingRoof(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
-  gl.uniform4f(u_Color, 51 / 256, 0 / 256, 51 / 256, 1.0);
+  gl.uniform4f(u_Color, 128 / 256, 128 / 256, 128 / 256, 1.0);
 
   // Main roof
   pushMatrix(modelMatrix);
@@ -748,7 +748,7 @@ function drawSoil(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
 }
 
 function drawHedges(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
-  gl.uniform4f(u_Color, 107 / 256, 142 / 256, 35 / 256, 1.0);
+  gl.uniform4f(u_Color, 5 / 256, 155 / 256, 0 / 256, 1.0);
 
   pushMatrix(modelMatrix);
   modelMatrix.translate(22.0, -3.0, 0.0);
@@ -779,22 +779,27 @@ function drawHedges(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
 }
 
 function drawTablesChairsLights(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
-  gl.uniform4f(u_Color, 230 / 256, 191 / 256, 131 / 256, 1.0);
 
   pushMatrix(modelMatrix);
   modelMatrix.translate(22.0, -3.5, 1.0);
-  modelMatrix.rotate(90, 0, 1, 0);
 
+  // Table and Chairs by entrance
+  drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -9.6, 0, 3);
+  drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -10.4, 0, 3, false);
+  drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -10.4, 0, 3, true);
+  drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.7, (2 * i));
+
+  modelMatrix.rotate(90, 0, 1, 0);
   // Front & Back tables
   for (var h = 0; h < 2; h++) {
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 6; i++) {
       drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0, (2 * i));
     }
   }
 
   // Front & Back chairs
   for (var h = 0; h < 2; h++) {
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 6; i++) {
       drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), false);
       drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), true);
     }
@@ -802,7 +807,7 @@ function drawTablesChairsLights(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
 
   // Lights on tables
   for (var h = 0; h < 2; h++) {
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 6; i++) {
       drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.7, (2 * i));
     }
   }
@@ -810,7 +815,9 @@ function drawTablesChairsLights(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
   modelMatrix = popMatrix();
 }
 
-function drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ) {
+function drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ) {  
+  gl.uniform4f(u_Color, 182 / 256, 155 / 256, 76 / 256, 1.0);
+
   pushMatrix(modelMatrix);
   modelMatrix.translate(offsetX, offsetY, offsetZ);  // Translates to world position
 
@@ -853,6 +860,8 @@ function drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offs
 }
 
 function drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotate) {
+  gl.uniform4f(u_Color, 182 / 256, 155 / 256, 76 / 256, 1.0);
+
   pushMatrix(modelMatrix);
   modelMatrix.translate(offsetX, offsetY, offsetZ);
 
@@ -1009,7 +1018,11 @@ function drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, off
   drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
-  gl.uniform4f(u_Color, 211 / 256, 211 / 256, 211 / 256, 1.0);
+  if(offsetY > 0 ){
+    gl.uniform4f(u_Color, 211 / 256, 211 / 256, 211 / 256, 1.0);  //Upstairs
+  }else{
+    gl.uniform4f(u_Color, 64 / 256, 64 / 256, 64 / 256, 1.0); //Downstairs
+  }
 
   // Inside bit
   pushMatrix(modelMatrix);
@@ -1068,6 +1081,4 @@ function drawbox(gl, u_ModelMatrix, u_NormalMatrix, n) {
   gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);
 
   modelMatrix = popMatrix();
-}
-
-
+}1
