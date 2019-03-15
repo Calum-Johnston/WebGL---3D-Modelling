@@ -1,3 +1,4 @@
+
 // Computer Graphics Coursework: By Calum Johnston
 
 /*
@@ -8,27 +9,49 @@ SHADERS
 
 // Vertex shader program
 var VSHADER_SOURCE =
-  'attribute vec4 a_Position;\n' +  //!
-  'attribute vec4 a_Normal;\n' +    //!
+  'attribute vec4 a_Position;\n' +
+  'attribute vec4 a_Normal;\n' +
 
-  'uniform mat4 u_ModelMatrix;\n' +    //! Rotation/translation/scaling information
-  'uniform mat4 u_NormalMatrix;\n' +   //! Transformation matrix of normal
-  'uniform mat4 u_ViewMatrix;\n' +     //! Eye point, look up point, up direction
-  'uniform mat4 u_ProjMatrix;\n' +     //! Sets viewing volume
- 
-  'varying vec3 v_Normal;\n' +
-  'varying vec3 v_Position;\n' + //!
-  'varying vec4 v_Color;\n' + //!
-  'uniform vec4 u_Color;\n' + //!  
- 
+  'uniform mat4 u_ModelMatrix;\n' +    // Rotation/translation/scaling information
+  'uniform mat4 u_NormalMatrix;\n' +   // Transformation matrix of normal
+  'uniform mat4 u_ViewMatrix;\n' +     // Eye point, look up point, up direction
+  'uniform mat4 u_ProjMatrix;\n' +     // Sets viewing volume
+
+  'uniform vec3 u_LightColor;\n' +     // Light color
+  'uniform vec3 u_LightDirection;\n' + // Light direction
+  'uniform vec3 u_LightIntensity;\n' + // Light intensity
+  'uniform vec3 u_AmbientLight;\n' +   // Color of an ambient light
+  'varying vec4 v_Color;\n' +
+  'uniform vec4 u_Color;\n' +
+
+  'uniform bool u_isLighting;\n' +
+
   'void main() {\n' +
-     // Calculates position of vertex
+
+  // Calculates position of vertex
   '  gl_Position = u_ProjMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;\n' +
-  
-     // Calculates the vertex position in the world coordinate
-  '  v_Position = vec3(u_ModelMatrix * a_Position);\n' +
-  '  v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
-  '  v_Color = u_Color;\n' +
+
+  // If the object requires lighting 
+  '  if(u_isLighting)\n' +
+  '  {\n' +
+  // Recalculate normal with normal matirx and make its length 1.0
+  '     vec3 normal = normalize((u_NormalMatrix * a_Normal).xyz);\n' +
+
+  // The dot product of the light direction and the normal
+  '     float nDotL = max(dot(u_LightDirection, normal), 0.0);\n' +
+
+  // Calculate the color due to diffuse reflection
+  '     vec3 diffuse = u_LightColor * u_Color.rgb * nDotL * u_LightIntensity;\n' +
+
+  // Calculate the color due to ambient reflection
+  '     vec3 ambient = u_AmbientLight * u_Color.rgb;\n' +
+
+  // Adds surface colors due to diffuse and ambient reflection
+  '     v_Color = vec4(diffuse + ambient, u_Color.a);\n' + '  }\n' +
+  '  else\n' +
+  '  {\n' +
+  '     v_Color = u_Color;\n' +
+  '  }\n' +
   '}\n';
 
 // Fragment shader program
@@ -36,43 +59,13 @@ var FSHADER_SOURCE =
   '#ifdef GL_ES\n' +
   'precision mediump float;\n' +
   '#endif\n' +
-
-  'uniform vec3 u_LightColor[1];\n' +
-  'uniform vec3 u_LightPosition[1];\n' +
-  'uniform vec3 u_LightIntensity[1];\n' +
-  'uniform vec3 u_AmbientLight;\n' +
-
-  'varying vec3 v_Normal;\n' +
-  'varying vec3 v_Position;\n' +
   'varying vec4 v_Color;\n' +
-
-  'vec3 ambient;\n' +
-
   'void main() {\n' +
 
-  '  vec3 diffuse = vec3(0, 0, 0);\n' +
-
-     // Normalise normal because it's interpolated and not 1.0 
-  '  vec3 normal = normalize(v_Normal);\n' +
-  
-  // Loops through all light sources
-  '  for(int x = 0; x < 11; x++){\n' +
-        // Calculate the light direction and make it 1.0 in length
-  '    vec3 lightDirection = normalize(u_LightPosition[x] - v_Position.xyz);\n' +
-
-        // The dot product of the light direction and the normal
-  '    float nDotL = max(dot(normal, lightDirection), 0.0);\n' +
-        
-        // Calculate the color due to diffuse reflection
-  '    diffuse = diffuse + u_LightColor[x] * v_Color.rgb * nDotL * u_LightIntensity[x];\n' +
-  '  }\n' +
-
-     // Calculate the color due to ambient reflection
-  '  ambient = u_AmbientLight * v_Color.rgb;\n' +
-
-     // Adds surface colors due to diffuse and ambient reflection
-  '  gl_FragColor = vec4(diffuse + ambient, v_Color.a);\n' + 
+  // Gives the vertex a particular color
+  '  gl_FragColor = v_Color;\n' +
   '}\n';
+
 
 
 
@@ -116,6 +109,13 @@ var g_DOWNkey = false;
 var g_RIGHTkey = false;
 var g_SPACEkey = false;
 var g_Ckey = false;
+var g_1Key = false;
+var g_2Key = false;
+var g_3Key = false;
+var g_4Key = false;
+
+// Key variables for light events
+var lightIntensity = 0.2;
 
 // Main function
 function main() {
@@ -147,33 +147,50 @@ function main() {
   var u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
   var u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
   var u_ProjMatrix = gl.getUniformLocation(gl.program, 'u_ProjMatrix');
+  var u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
+  var u_LightDirection = gl.getUniformLocation(gl.program, 'u_LightDirection');
+  var u_LightIntensity = gl.getUniformLocation(gl.program, 'u_LightIntensity');
+  var u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
   var u_Color = gl.getUniformLocation(gl.program, 'u_Color');
+
+  // Trigger to define whether lighting is used or not
+  var u_isLighting = gl.getUniformLocation(gl.program, 'u_isLighting');
 
   // Checks all uniform variables have been retrieved correctly
   if (!u_ModelMatrix || !u_ViewMatrix || !u_NormalMatrix ||
-      !u_ProjMatrix || !u_Color) { 
+    !u_ProjMatrix || !u_LightColor || !u_LightDirection ||
+    !u_isLighting || !u_Color) {
     console.log('Failed to get the storage locations of a variable');
     return;
   }
 
-  var drawWorld = function(){
-    document.onkeydown = function(ev){
+  // Set the light color 
+  gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
+  // Set the ambient light color 
+  gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+  // Set the light direction (in the world coordinate)
+  var lightDirection = new Vector3([0.5, 3.0, 4.0]);
+  lightDirection.normalize();     // Normalize
+  gl.uniform3fv(u_LightDirection, lightDirection.elements);
+
+  var drawWorld = function () {
+    document.onkeydown = function (ev) {
       checkKeyDown(ev);
     };
-    document.onkeyup = function(ev){
+    document.onkeyup = function (ev) {
       checkKeyUp(ev);
     };
     moveCameraPerspective();
-    changeLighting(gl);
-    draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_Color, canvas);
+    renderLighting(gl, u_LightColor, u_LightDirection, u_LightIntensity, u_AmbientLight);
+    moveObjects();
+    draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, u_Color, canvas);
     requestAnimationFrame(drawWorld);
-    return false;
   }
 
   // Calls drawWorld() continously
   drawWorld();
 }
- 
+
 
 
 
@@ -184,8 +201,8 @@ MOUSE & KEY PRESSING
 ===============================
 */
 
-function checkKeyUp(ev){
-  switch(ev.keyCode){
+function checkKeyUp(ev) {
+  switch (ev.keyCode) {
     case 40: g_UPkey = false; break; //Up Arrow Key
     case 38: g_DOWNkey = false; break; //Down Arrow Key
     case 39: g_RIGHTkey = false; break; //Right Arrow Key
@@ -196,11 +213,15 @@ function checkKeyUp(ev){
     case 68: g_Dkey = false; break; //D Key
     case 32: g_SPACEkey = false; break; //Space Key
     case 67: g_Ckey = false; break; //C Key
+    case 49: g_1Key = false; break; //1 Key
+    case 50: g_2Key = false; break; //2 Key
+    case 51: g_3Key = false; break; //3 Key
+    case 52: g_4Key = false; break; //4 Key
   }
 }
 
-function checkKeyDown(ev){
-  switch(ev.keyCode){
+function checkKeyDown(ev) {
+  switch (ev.keyCode) {
     case 40: g_UPkey = true; break; //Up Arrow Key
     case 38: g_DOWNkey = true; break; //Down Arrow Key
     case 39: g_RIGHTkey = true; break; //Right Arrow Key
@@ -211,6 +232,10 @@ function checkKeyDown(ev){
     case 68: g_Dkey = true; break; //D Key
     case 32: g_SPACEkey = true; break; //Space Key
     case 67: g_Ckey = true; break; //C Key
+    case 49: g_1Key = true; break; //1 Key
+    case 50: g_2Key = true; break; //2 Key
+    case 51: g_3Key = true; break; //3 Key
+    case 52: g_4Key = true; break; //4 Key
   }
 }
 
@@ -219,96 +244,59 @@ function moveCameraPerspective() {
   document.getElementById("angle").innerHTML = angle;
   g_xDegree = Math.cos(angle) - Math.sin(angle);
   g_zDegree = Math.cos(angle) + Math.sin(angle);
-  if(g_UPkey == true){ g_yLook -= panup_downDist; } //Up Arrow Key
-  if(g_DOWNkey == true) { g_yLook += panup_downDist; } //Down Arrow Key
-  if(g_RIGHTkey == true) { //Right Arrow Key
+  if (g_UPkey == true) { g_yLook -= panup_downDist; } //Up Arrow Key
+  if (g_DOWNkey == true) { g_yLook += panup_downDist; } //Down Arrow Key
+  if (g_RIGHTkey == true) { //Right Arrow Key
     angle = (angle + Math.PI / 180) % (2 * Math.PI);
     g_xDegree = Math.cos(angle) - Math.sin(angle);
     g_zDegree = Math.cos(angle) + Math.sin(angle);
   }
-  if(g_LEFTkey == true){ //Left Arrow Key
+  if (g_LEFTkey == true) { //Left Arrow Key
     angle = (angle - Math.PI / 180) % (2 * Math.PI);
     g_xDegree = Math.cos(angle) - Math.sin(angle);
-    g_zDegree = Math.cos(angle) + Math.sin(angle); 
+    g_zDegree = Math.cos(angle) + Math.sin(angle);
   }
-  if(g_wKey == true){ g_xCord += g_xDegree * forward_backDist; g_zCord += g_zDegree * forward_backDist;}
-  if(g_Skey == true){ g_xCord -= g_xDegree * forward_backDist; g_zCord -= g_zDegree * forward_backDist;}
-  if(g_Akey == true){ g_xCord += g_zDegree * left_rightDist; g_zCord -= g_xDegree * left_rightDist;}
-  if(g_Dkey == true){ g_xCord -= g_zDegree * left_rightDist; g_zCord += g_xDegree * left_rightDist;}
-  if(g_SPACEkey == true){ g_yCord += up_downDist; g_yLook += up_downDist;} 
-  if(g_Ckey == true){ g_yCord -= up_downDist; g_yLook -= up_downDist;}
+  if (g_wKey == true) { g_xCord += g_xDegree * forward_backDist; g_zCord += g_zDegree * forward_backDist; }
+  if (g_Skey == true) { g_xCord -= g_xDegree * forward_backDist; g_zCord -= g_zDegree * forward_backDist; }
+  if (g_Akey == true) { g_xCord += g_zDegree * left_rightDist; g_zCord -= g_xDegree * left_rightDist; }
+  if (g_Dkey == true) { g_xCord -= g_zDegree * left_rightDist; g_zCord += g_xDegree * left_rightDist; }
+  if (g_SPACEkey == true) { g_yCord += up_downDist; g_yLook += up_downDist; }
+  if (g_Ckey == true) { g_yCord -= up_downDist; g_yLook -= up_downDist; }
 }
 
-// Change lighting based on user input
-function changeLighting(gl){
-  
-  var u_LightColor = [2];
-  var u_LightPosition = [2];
-  var u_LightIntensity = [2]; 
+function renderLighting(gl, u_LightColor, u_LightDirection, u_LightIntensity, u_AmbientLight){
+  // Set the light color 
+  gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
+  // Set the ambient light color 
+  gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+  // Set the light direction (in the world coordinate)
+  gl.uniform3f(u_LightDirection, 0.5, 3.0, 4.0);
 
-  /*/Main World Light (controll day and night);
-  u_LightColor[0] = gl.getUniformLocation(gl.program, 'u_LightColor[0]');
-  u_LightPosition[0] = gl.getUniformLocation(gl.program, 'u_LightPosition[0]');
-  u_LightIntensity[0] = gl.getUniformLocation(gl.program, 'u_LightIntensity[0]');
-  gl.uniform3f(u_LightColor[0], 1.0, 1.0, 1.0);   // Set the light color 
-  gl.uniform3f(u_LightPosition[0], 60, 22, 30);   // Set the light position (in the world coordinate)
-  gl.uniform3f(u_LightIntensity[0], 0, 0, 0); // Set the light intensity
-*/
-
-  u_LightColor[1] = gl.getUniformLocation(gl.program, 'u_LightColor[0]');
-  u_LightPosition[1] = gl.getUniformLocation(gl.program, 'u_LightPosition[0]');
-  u_LightIntensity[1] = gl.getUniformLocation(gl.program, 'u_LightIntensity[0]');
-  gl.uniform3f(u_LightColor[1], 1.0, 1.0, 1.0);   // Set the light color 
-  gl.uniform3f(u_LightPosition[1], 24, -3.1, -9);   // Set the light position (in the world coordinate)
-  gl.uniform3f(u_LightIntensity[1], 0.1, 0.1, 0.1); // Set the light intensity
-
-  
-/*  // Lights on tables
-  for(var h = 0; h < 2; h++){
-    for(var i = 0; i < 5; i++){
-      drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.7, (2 * i), 0, 0, 0, 0, false);
+  if(g_1Key == true){
+    if(lightIntensity > 0){
+      lightIntensity -= 0.001;
     }
-    -3.5 + 0.7 + 0.1, 22 - 0.5 + (5 * x)
-  } 22.0, -3.5, 1.0
-
-  // Lighting for table lights
-  var count = 1;
-  for(var x = 0; x < 2; x++){
-    for(var y = 0; y < 4; y++){
-      u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor[' + count + ']');
-      u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition[' + count + ']');
-      u_LightIntensity = gl.getUniformLocation(gl.program, 'u_LightIntensity[' + count + ']');
-      //lightIndividualBulb(gl, u_LightColor, u_LightPosition, u_LightIntensity, 22 + (2 * y), -1.5, 1.5 - (5 * x));
-      lightIndividualBulb(gl, u_LightColor, u_LightPosition, u_LightIntensity, 22 , -2.5, 1.5);
-      count += 1; 
+  }
+  if(g_2Key == true){
+    if(lightIntensity < 0.2){
+      lightIntensity += 0.001;
     }
   }
 
-  u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor[' + 9 + ']');
-  u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition[' + 9 + ']');
-  u_LightIntensity = gl.getUniformLocation(gl.program, 'u_LightIntensity[' + 9 + ']');
-  gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);   // Set the light color 
-  gl.uniform3f(u_LightPosition, 22, -2.5, 1.5);   // Set the light position (in the world coordinate)
-  gl.uniform3f(u_LightIntensity, 0.1, 0.1, 0.1); // Set the light intensity
-  u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor[' + 10 + ']');
-  u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition[' + 10 + ']');
-  u_LightIntensity = gl.getUniformLocation(gl.program, 'u_LightIntensity[' + 10 + ']');
-  gl.uniform3f(u_LightColor, 1, 1, 1);   // Set the light color 
-  gl.uniform3f(u_LightPosition, 24, -2.5, 1.5);   // Set the light position (in the world coordinate)
-  gl.uniform3f(u_LightIntensity, 0.1, 0.1, 0.1); // Set the light intensity*/
-
-
-
-  // Ambient Light for World
-  //var u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
-  //gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+  // Set the light intensity
+  gl.uniform3f(u_LightIntensity, lightIntensity, lightIntensity, lightIntensity);
 }
 
-function lightIndividualBulb(gl, u_LightColor, u_LightPosition, u_LightIntensity, offsetX, offsetY, offsetZ){
-  gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);   // Set the light color 
-  gl.uniform3f(u_LightPosition, offsetX, offsetY, offsetZ);   // Set the light position (in the world coordinate)
-  gl.uniform3f(u_LightIntensity, 0.1, 0.1, 0.1); // Set the light intensity 
+function moveObjects(){
+  moveDoor();
+} 
+
+function moveDoor(){
+  if(true){
+
+  }
 }
+
 
 
 
@@ -330,37 +318,37 @@ function initCubeVertexBuffers(gl) {
   //  | |v7---|-|v4
   //  |/      |/
   //  v2------v3
-  var vertices = new Float32Array([   
-     // Coordinates
-     0.5, 0.5, 0.5,  -0.5, 0.5, 0.5,  -0.5,-0.5, 0.5,   0.5,-0.5, 0.5, // v0-v1-v2-v3 front
-     0.5, 0.5, 0.5,   0.5,-0.5, 0.5,   0.5,-0.5,-0.5,   0.5, 0.5,-0.5, // v0-v3-v4-v5 right
-     0.5, 0.5, 0.5,   0.5, 0.5,-0.5,  -0.5, 0.5,-0.5,  -0.5, 0.5, 0.5, // v0-v5-v6-v1 up
-    -0.5, 0.5, 0.5,  -0.5, 0.5,-0.5,  -0.5,-0.5,-0.5,  -0.5,-0.5, 0.5, // v1-v6-v7-v2 left
-    -0.5,-0.5,-0.5,   0.5,-0.5,-0.5,   0.5,-0.5, 0.5,  -0.5,-0.5, 0.5, // v7-v4-v3-v2 down
-     0.5,-0.5,-0.5,  -0.5,-0.5,-0.5,  -0.5, 0.5,-0.5,   0.5, 0.5,-0.5  // v4-v7-v6-v5 back
+  var vertices = new Float32Array([
+    // Coordinates
+    0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, // v0-v1-v2-v3 front
+    0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, // v0-v3-v4-v5 right
+    0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, // v0-v5-v6-v1 up
+    -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, 0.5, // v1-v6-v7-v2 left
+    -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, // v7-v4-v3-v2 down
+    0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5  // v4-v7-v6-v5 back
   ]);
 
-  var normals = new Float32Array([    
+  var normals = new Float32Array([
     // Normal
-    0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,  // v0-v1-v2-v3 front
-    1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,  // v0-v3-v4-v5 right
-    0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,  // v0-v5-v6-v1 up
-   -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  // v1-v6-v7-v2 left
-    0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,  // v7-v4-v3-v2 down
-    0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0   // v4-v7-v6-v5 back
+    0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,  // v0-v1-v2-v3 front
+    1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,  // v0-v3-v4-v5 right
+    0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,  // v0-v5-v6-v1 up
+    -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0,  // v1-v6-v7-v2 left
+    0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0,  // v7-v4-v3-v2 down
+    0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0   // v4-v7-v6-v5 back
   ]);
 
 
   // Indices of the vertices
   var indices = new Uint8Array([
     // Indices
-     0, 1, 2,   0, 2, 3,    // front
-     4, 5, 6,   4, 6, 7,    // right
-     8, 9,10,   8,10,11,    // up
-    12,13,14,  12,14,15,    // left
-    16,17,18,  16,18,19,    // down
-    20,21,22,  20,22,23     // back
- ]);
+    0, 1, 2, 0, 2, 3,    // front
+    4, 5, 6, 4, 6, 7,    // right
+    8, 9, 10, 8, 10, 11,    // up
+    12, 13, 14, 12, 14, 15,    // left
+    16, 17, 18, 16, 18, 19,    // down
+    20, 21, 22, 20, 22, 23     // back
+  ]);
 
 
   // Write the vertex property to buffers (coordinates, colors and normals)
@@ -381,7 +369,7 @@ function initCubeVertexBuffers(gl) {
 }
 
 // Sets the definition for a prism
-function initPrismVertexBuffers(gl){
+function initPrismVertexBuffers(gl) {
   // Create a prism
   // Size: 1 by 1 by 1
   //           v4     
@@ -390,54 +378,54 @@ function initPrismVertexBuffers(gl){
   //    /   /\     \
   //   /   v3-\-----v5   
   //  v0-------v2
-  var vertices = new Float32Array([   
+  var vertices = new Float32Array([
     // Coordinates
-   -0.5, -0.5, 0.5,  0.0, 0.5, 0.5,   0.5,-0.5, 0.5,   // v0-v1-v2 front
-    0.0, 0.5, 0.5,   0.0, 0.5,-0.5,   0.5,-0.5,-0.5,   0.5,-0.5, 0.5,   // v1-v4-v5-v2 right
-   -0.5,-0.5, 0.5,  -0.5,-0.5,-0.5,   0.0, 0.5,-0.5,   0.0, 0.5, 0.5,   // v0-v3-v4-v1 left
-    0.5,-0.5, 0.5,   0.5,-0.5,-0.5,  -0.5,-0.5,-0.5,  -0.5,-0.5, 0.5,   // v2-v5-v3-v0 bottom
-   -0.5,-0.5,-0.5,   0.0, 0.5,-0.5,   0.5,-0.5,-0.5    // v3-v4-v5 back
- ]);
+    -0.5, -0.5, 0.5, 0.0, 0.5, 0.5, 0.5, -0.5, 0.5,   // v0-v1-v2 front
+    0.0, 0.5, 0.5, 0.0, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5,   // v1-v4-v5-v2 right
+    -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.5, 0.5,   // v0-v3-v4-v1 left
+    0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, 0.5,   // v2-v5-v3-v0 bottom
+    -0.5, -0.5, -0.5, 0.0, 0.5, -0.5, 0.5, -0.5, -0.5    // v3-v4-v5 back
+  ]);
 
- var normals = new Float32Array([    
-   // Normal
-   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   // v0-v1-v2 front
-   1.0, 1.0, 0.0,   1.0, 1.0, 0.0,   1.0, 1.0, 0.0,   1.0, 1.0, 0.0,   // v1-v4-v5-v2 right
-  -1.0, 1.0, 0.0,  -1.0, 1.0, 0.0,  -1.0, 1.0, 0.0,  -1.0, 1.0, 0.0,   // v0-v3-v4-v1 left
-   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   // v2-v5-v3-v0 bottom
-   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   // v3-v4-v5 back
- ]);
+  var normals = new Float32Array([
+    // Normal
+    0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,   // v0-v1-v2 front
+    1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0,   // v1-v4-v5-v2 right
+    -1.0, 1.0, 0.0, -1.0, 1.0, 0.0, -1.0, 1.0, 0.0, -1.0, 1.0, 0.0,   // v0-v3-v4-v1 left
+    0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0,   // v2-v5-v3-v0 bottom
+    0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0,   // v3-v4-v5 back
+  ]);
 
 
- var indices = new Uint8Array([
-   // Indices
+  var indices = new Uint8Array([
+    // Indices
     0, 1, 2,               // front
-    3, 4, 5,   3, 5, 6,    // right
-    7, 8, 9,   7, 9,10,    // left
-   11,12,13,  11,13,14,    // bottom
-   15,16,17                // back
-]);
+    3, 4, 5, 3, 5, 6,    // right
+    7, 8, 9, 7, 9, 10,    // left
+    11, 12, 13, 11, 13, 14,    // bottom
+    15, 16, 17                // back
+  ]);
 
 
- // Write the vertex property to buffers (coordinates, colors and normals)
- if (!initArrayBuffer(gl, 'a_Position', vertices, 3, gl.FLOAT)) return -1;
- if (!initArrayBuffer(gl, 'a_Normal', normals, 3, gl.FLOAT)) return -1;
+  // Write the vertex property to buffers (coordinates, colors and normals)
+  if (!initArrayBuffer(gl, 'a_Position', vertices, 3, gl.FLOAT)) return -1;
+  if (!initArrayBuffer(gl, 'a_Normal', normals, 3, gl.FLOAT)) return -1;
 
- // Write the indices to the buffer object
- var indexBuffer = gl.createBuffer();
- if (!indexBuffer) {
-   console.log('Failed to create the buffer object');
-   return false;
- }
+  // Write the indices to the buffer object
+  var indexBuffer = gl.createBuffer();
+  if (!indexBuffer) {
+    console.log('Failed to create the buffer object');
+    return false;
+  }
 
- gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
- gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
 
- return indices.length;
+  return indices.length;
 }
 
 // Function initiates an array buffer based on attribute passed
-function initArrayBuffer (gl, attribute, data, num, type) {
+function initArrayBuffer(gl, attribute, data, num, type) {
 
   // Create a buffer object
   var buffer = gl.createBuffer();
@@ -480,13 +468,13 @@ MATRIX DEFINITIONS (Stacks)
 var g_matrixStack = [];
 
 // Function to push a matrix onto the stack
-function pushMatrix(m) { 
+function pushMatrix(m) {
   var m2 = new Matrix4(m);
   g_matrixStack.push(m2);
 }
 
 // Function to pop a matrix off the stack
-function popMatrix() { 
+function popMatrix() {
   return g_matrixStack.pop();
 }
 
@@ -499,11 +487,11 @@ function popMatrix() {
 DRAWING
 ===============================
 */
-function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_Color, canvas) {
+function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_isLighting, u_Color, canvas) {
 
   // Calculate the view matrix and the projection matrix
   viewMatrix.setLookAt(g_xCord, g_yCord, g_zCord, g_xCord + g_xDegree, g_yLook, g_zCord + g_zDegree, 0, 1, 0);
-  projMatrix.setPerspective(40, canvas.width/canvas.height, 1, 100);
+  projMatrix.setPerspective(40, canvas.width / canvas.height, 1, 100);
   // Pass the view, and projection matrix to the uniform variable respectively
   gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
   gl.uniformMatrix4fv(u_ProjMatrix, false, projMatrix.elements);
@@ -512,7 +500,10 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_C
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   // Sets default color
-  gl.uniform4f(u_Color, 1, 0, 0, 1); 
+  gl.uniform4f(u_Color, 1, 0, 0, 1);
+
+  // Means lighting will always apply
+  gl.uniform1i(u_isLighting, true); // Will apply lighting
 
   drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, u_Color)
 
@@ -525,7 +516,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_C
 
   // Do translations that apply to all!
   modelMatrix.setTranslate(0, 0, 0);  // Translation (No translation is supported here)
-  
+
   drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color)
   drawFloor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
   drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
@@ -549,219 +540,219 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_C
 
   drawBuildingRoof(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color);
 
-  document.getElementById("Position").innerHTML = "Position = (" + g_xCord + ", " + g_yCord + ", " + g_zCord +  ")";
-  document.getElementById("Direction").innerHTML = "Direction = (" + g_xCord + g_xDegree + ", " + g_yLook + ", " + g_zCord + g_zDegree +  ")";
+  document.getElementById("Position").innerHTML = "Position = (" + g_xCord + ", " + g_yCord + ", " + g_zCord + ")";
+  document.getElementById("Direction").innerHTML = "Direction = (" + g_xCord + g_xDegree + ", " + g_yLook + ", " + g_zCord + g_zDegree + ")";
 }
 
-function drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) { 
-  
-  gl.uniform4f(u_Color, 256/256, 256/256, 256/256, 1.0);
+function drawBuildingBase(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
+
+  gl.uniform4f(u_Color, 256 / 256, 256 / 256, 256 / 256, 1.0);
 
   // The main building block
   pushMatrix(modelMatrix);
-    modelMatrix.scale(20.0, 8.0, 10.0); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.scale(20.0, 8.0, 10.0); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
   // The smaller building block
   pushMatrix(modelMatrix);
-    modelMatrix.translate(15, -2, -1);  // Translation
-    modelMatrix.scale(10.0, 4.0, 8.0); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(15, -2, -1);  // Translation
+  modelMatrix.scale(10.0, 4.0, 8.0); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
   // Other building block
   pushMatrix(modelMatrix);
-    modelMatrix.translate(16, -2, -5);
-    modelMatrix.rotate(90, 0, 1, 0);
-    modelMatrix.scale(10.0, 4.0, 6.0)
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(16, -2, -5);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(10.0, 4.0, 6.0)
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix(modelMatrix);
 
 }
 
-function drawBuildingRoof(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
-  gl.uniform4f(u_Color, 51/256, 0/256, 51/256, 1.0);
+function drawBuildingRoof(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
+  gl.uniform4f(u_Color, 51 / 256, 0 / 256, 51 / 256, 1.0);
 
   // Main roof
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 6.5, 0);
-    modelMatrix.rotate(90, 0, 1, 0);
-    modelMatrix.scale(10.0, 5.0, 20.0)
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 6.5, 0);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(10.0, 5.0, 20.0)
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
   // Side roof
   pushMatrix(modelMatrix);
-    modelMatrix.translate(15, 2, -1); 
-    modelMatrix.rotate(90, 0, 1, 0);
-    modelMatrix.scale(8.0, 4.0, 10.0); 
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(15, 2, -1);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(8.0, 4.0, 10.0);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
   // Other roof
   pushMatrix(modelMatrix);
-    modelMatrix.translate(16, 2, -5.5); 
-    modelMatrix.rotate(0, 0, 1, 0);
-    modelMatrix.scale(6.0, 4.0, 9.0); 
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(16, 2, -5.5);
+  modelMatrix.rotate(0, 0, 1, 0);
+  modelMatrix.scale(6.0, 4.0, 9.0);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 }
 
 // Draws the floor
-function drawFloor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
-  gl.uniform4f(u_Color, 256/256, 256/256, 64/256, 1.0);
+function drawFloor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
+  gl.uniform4f(u_Color, 256 / 256, 256 / 256, 64 / 256, 1.0);
   pushMatrix(modelMatrix);
-    modelMatrix.translate(13, -4, 0); 
-    modelMatrix.rotate(90, 0, 0, 1); 
-    modelMatrix.rotate(90, 0, 1, 0);
-    modelMatrix.scale(25.0, 50.0, 0.1); 
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(13, -4, 0);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(25.0, 50.0, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 }
 
 // Draws the floor
-function drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
-  gl.uniform4f(u_Color, 230/256, 191/256, 131/256, 1.0);
+function drawGardenWall(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
+  gl.uniform4f(u_Color, 230 / 256, 191 / 256, 131 / 256, 1.0);
 
   pushMatrix(modelMatrix);
-  modelMatrix.translate(22.0, -4.0, 0.0); 
+  modelMatrix.translate(22.0, -4.0, 0.0);
   modelMatrix.rotate(-90, 0, 1, 0);
 
   // Exterior Walls
   // Front wall
   pushMatrix(modelMatrix);
-    modelMatrix.translate(4.0, 0.5, -5.0); 
-    modelMatrix.scale(0.1, 1.0, 15.0); 
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(4.0, 0.5, -5.0);
+  modelMatrix.scale(0.1, 1.0, 15.0);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   // Right Wall
   pushMatrix(modelMatrix);
-    modelMatrix.translate(-1.0, 0.5, -12.5); 
-    modelMatrix.rotate(-90, 0, 1, 0);
-    modelMatrix.scale(0.1, 1.0, 10); 
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(-1.0, 0.5, -12.5);
+  modelMatrix.rotate(-90, 0, 1, 0);
+  modelMatrix.scale(0.1, 1.0, 10);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   // Back Wall
   pushMatrix(modelMatrix);
-    modelMatrix.translate(-6.0, 0.5, -5.0); 
-    modelMatrix.scale(0.1, 1.0, 15.0); 
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(-6.0, 0.5, -5.0);
+  modelMatrix.scale(0.1, 1.0, 15.0);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
 
   // Interior Walls
   // Front wall
   pushMatrix(modelMatrix);
-    modelMatrix.translate(3.0, 0.5, -4.5); 
-    modelMatrix.scale(0.1, 1.0, 14.0); 
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(3.0, 0.5, -4.5);
+  modelMatrix.scale(0.1, 1.0, 14.0);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   // Right Wall
   pushMatrix(modelMatrix);
-    modelMatrix.translate(-1.0, 0.5, -11.5); 
-    modelMatrix.rotate(-90, 0, 1, 0);
-    modelMatrix.scale(0.1, 1.0, 8.0); 
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(-1.0, 0.5, -11.5);
+  modelMatrix.rotate(-90, 0, 1, 0);
+  modelMatrix.scale(0.1, 1.0, 8.0);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   // Back Wall
   pushMatrix(modelMatrix);
-    modelMatrix.translate(-5.0, 0.5, -4.5); 
-    modelMatrix.scale(0.1, 1.0, 14.0); 
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(-5.0, 0.5, -4.5);
+  modelMatrix.scale(0.1, 1.0, 14.0);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
   modelMatrix = popMatrix();
 }
 
 // Draws the soil
-function drawSoil(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
-  gl.uniform4f(u_Color, 109/256, 88/256, 74/256, 1.0);
+function drawSoil(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
+  gl.uniform4f(u_Color, 109 / 256, 88 / 256, 74 / 256, 1.0);
 
   pushMatrix(modelMatrix);
-  modelMatrix.translate(22.0, -3.5, 0.0); 
+  modelMatrix.translate(22.0, -3.5, 0.0);
   modelMatrix.rotate(-90, 0, 1, 0);
 
   // Front Soil
   pushMatrix(modelMatrix);
-    modelMatrix.translate(3.5, 0.0, -4.75); 
-    modelMatrix.scale(1.0, 0.5, 14.0)
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(3.5, 0.0, -4.75);
+  modelMatrix.scale(1.0, 0.5, 14.0)
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
   // Side Soil
   pushMatrix(modelMatrix);
-    modelMatrix.translate(-1.0, 0.0, -12.0); 
-    modelMatrix.rotate(-90, 0, 1, 0);
-    modelMatrix.scale(1.0, 0.5, 10.0)
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(-1.0, 0.0, -12.0);
+  modelMatrix.rotate(-90, 0, 1, 0);
+  modelMatrix.scale(1.0, 0.5, 10.0)
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
- 
+
   // Back Soil
   pushMatrix(modelMatrix);
-    modelMatrix.translate(-5.5, 0.0, -4.75); 
-    modelMatrix.scale(1.0, 0.5, 14.0)
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(-5.5, 0.0, -4.75);
+  modelMatrix.scale(1.0, 0.5, 14.0)
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   modelMatrix = popMatrix();
 }
 
-function drawHedges(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
-  gl.uniform4f(u_Color, 107/256, 142/256, 35/256, 1.0);
+function drawHedges(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
+  gl.uniform4f(u_Color, 107 / 256, 142 / 256, 35 / 256, 1.0);
 
   pushMatrix(modelMatrix);
-  modelMatrix.translate(22.0, -3.0, 0.0); 
+  modelMatrix.translate(22.0, -3.0, 0.0);
   modelMatrix.rotate(-90, 0, 1, 0);
 
-   // Front Hedge
+  // Front Hedge
   pushMatrix(modelMatrix);
-    modelMatrix.translate(3.5, 0.0, -4.75); 
-    modelMatrix.scale(0.6, 0.5, 14.0)
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(3.5, 0.0, -4.75);
+  modelMatrix.scale(0.6, 0.5, 14.0)
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
   // Side Hedge
   pushMatrix(modelMatrix);
-    modelMatrix.translate(-1.0, 0.0, -12.0); 
-    modelMatrix.rotate(-90, 0, 1, 0);
-    modelMatrix.scale(0.6, 0.5, 9.6)
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(-1.0, 0.0, -12.0);
+  modelMatrix.rotate(-90, 0, 1, 0);
+  modelMatrix.scale(0.6, 0.5, 9.6)
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
- 
+
   // Back HEdge
   pushMatrix(modelMatrix);
-    modelMatrix.translate(-5.5, 0.0, -4.75); 
-    modelMatrix.scale(0.6, 0.5, 14.0)
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(-5.5, 0.0, -4.75);
+  modelMatrix.scale(0.6, 0.5, 14.0)
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   modelMatrix = popMatrix();
 }
 
-function drawTablesChairsLights(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
-  gl.uniform4f(u_Color, 230/256, 191/256, 131/256, 1.0);
+function drawTablesChairsLights(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
+  gl.uniform4f(u_Color, 230 / 256, 191 / 256, 131 / 256, 1.0);
 
   pushMatrix(modelMatrix);
-  modelMatrix.translate(22.0, -3.5, 1.0); 
-  modelMatrix.rotate(90, 0, 1, 0); 
+  modelMatrix.translate(22.0, -3.5, 1.0);
+  modelMatrix.rotate(90, 0, 1, 0);
 
   // Front & Back tables
-  for(var h = 0; h < 2; h++){
-    for(var i = 0; i < 5; i++){
+  for (var h = 0; h < 2; h++) {
+    for (var i = 0; i < 5; i++) {
       drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0, (2 * i));
     }
   }
 
   // Front & Back chairs
-  for(var h = 0; h < 2; h++){
-    for(var i = 0; i < 5; i++){
+  for (var h = 0; h < 2; h++) {
+    for (var i = 0; i < 5; i++) {
       drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), false);
       drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -1.25 + (5 * h), 0, (2 * i), true);
     }
   }
 
   // Lights on tables
-  for(var h = 0; h < 2; h++){
-    for(var i = 0; i < 5; i++){
+  for (var h = 0; h < 2; h++) {
+    for (var i = 0; i < 5; i++) {
       drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -0.5 + (5 * h), 0.7, (2 * i), 0, 0, 0, 0, false);
     }
   }
@@ -769,132 +760,132 @@ function drawTablesChairsLights(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
   modelMatrix = popMatrix();
 }
 
-function drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ){
+function drawIndividualTable(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ) {
   pushMatrix(modelMatrix);
   modelMatrix.translate(offsetX, offsetY, offsetZ);  // Translates to world position
-  
+
   // Draw table legs
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0.0, 0, 0.6);
-    modelMatrix.rotate(50, 0, 0, 1);
-    modelMatrix.scale(1.4, 0.1, 0.1);
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0.0, 0, 0.6);
+  modelMatrix.rotate(50, 0, 0, 1);
+  modelMatrix.scale(1.4, 0.1, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0.0, 0, 0.6);
-    modelMatrix.rotate(-50, 0, 0, 1);
-    modelMatrix.scale(1.4, 0.1, 0.1);
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0.0, 0, 0.6);
+  modelMatrix.rotate(-50, 0, 0, 1);
+  modelMatrix.scale(1.4, 0.1, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 0, -0.6);
-    modelMatrix.rotate(50, 0, 0, 1);
-    modelMatrix.scale(1.4, 0.1, 0.1);
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 0, -0.6);
+  modelMatrix.rotate(50, 0, 0, 1);
+  modelMatrix.scale(1.4, 0.1, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 0, -0.6);
-    modelMatrix.rotate(-50, 0, 0, 1);
-    modelMatrix.scale(1.4, 0.1, 0.1);
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 0, -0.6);
+  modelMatrix.rotate(-50, 0, 0, 1);
+  modelMatrix.scale(1.4, 0.1, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
   // Draw Table Seat
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 0.6, 0);
-    modelMatrix.scale(1.4, 0.1, 1.4);
-    modelMatrix.rotate(90, 0, 0, 1);
-    modelMatrix.rotate(90, 0, 1, 0);
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 0.6, 0);
+  modelMatrix.scale(1.4, 0.1, 1.4);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.rotate(90, 0, 1, 0);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix()
 
   modelMatrix = popMatrix();
 }
 
-function drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotate){
+function drawIndividualChair(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotate) {
   pushMatrix(modelMatrix);
   modelMatrix.translate(offsetX, offsetY, offsetZ);
 
-  if(rotate){
+  if (rotate) {
     modelMatrix.rotate(180, 0, 1, 0);
     modelMatrix.translate(-1.5, 0, 0);
   }
 
   // Chair legs
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 0, 0.25);
-    modelMatrix.rotate(50, 0, 0, 1);
-    modelMatrix.scale(1.0, 0.1, 0.1);
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 0, 0.25);
+  modelMatrix.rotate(50, 0, 0, 1);
+  modelMatrix.scale(1.0, 0.1, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 0, 0.25);
-    modelMatrix.rotate(-50, 0, 0, 1);
-    modelMatrix.scale(1.0, 0.1, 0.1);
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 0, 0.25);
+  modelMatrix.rotate(-50, 0, 0, 1);
+  modelMatrix.scale(1.0, 0.1, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 0, -0.25);
-    modelMatrix.rotate(50, 0, 0, 1);
-    modelMatrix.scale(1.0, 0.1, 0.1);
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 0, -0.25);
+  modelMatrix.rotate(50, 0, 0, 1);
+  modelMatrix.scale(1.0, 0.1, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 0, -0.25);
-    modelMatrix.rotate(-50, 0, 0, 1);
-    modelMatrix.scale(1.0, 0.1, 0.1);
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 0, -0.25);
+  modelMatrix.rotate(-50, 0, 0, 1);
+  modelMatrix.scale(1.0, 0.1, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
   // Beams on chair leg
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 0, 0);
-    modelMatrix.rotate(90, 0, 1, 0);
-    modelMatrix.scale(0.6, 0.1, 0.1);
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 0, 0);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.scale(0.6, 0.1, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
   // Draw Chair Seat
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 0.4, 0);
-    modelMatrix.scale(0.7, 0.1, 0.7);
-    modelMatrix.rotate(90, 0, 0, 1);
-    modelMatrix.rotate(90, 0, 1, 0);
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 0.4, 0);
+  modelMatrix.scale(0.7, 0.1, 0.7);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.rotate(90, 0, 1, 0);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix()
 
   // Draw Chair Back
   pushMatrix(modelMatrix);
-    modelMatrix.translate(-0.35, 0.75, 0);
-    modelMatrix.rotate(-80, 0, 0, 1);
-    modelMatrix.scale(0.7, 0.1, 0.7);
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(-0.35, 0.75, 0);
+  modelMatrix.rotate(-80, 0, 0, 1);
+  modelMatrix.scale(0.7, 0.1, 0.7);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
   modelMatrix = popMatrix();
 }
 
-function drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, rotateAngle, rotate){
+function drawIndividualLight(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, rotateAngle, rotate) {
   pushMatrix(modelMatrix);
   modelMatrix.translate(offsetX, offsetY, offsetZ);
-  
-  gl.uniform4f(u_Color, 230/256, 191/256, 131/256, 1.0);
+
+  gl.uniform4f(u_Color, 230 / 256, 191 / 256, 131 / 256, 1.0);
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 0, 0);  // Translation
-    modelMatrix.scale(0.25, 0.1, 0.25); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 0, 0);  // Translation
+  modelMatrix.scale(0.25, 0.1, 0.25); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
-  
-  gl.uniform4f(u_Color, 256/256, 256/256, 0/256, 1.0);
+
+  gl.uniform4f(u_Color, 256 / 256, 256 / 256, 0 / 256, 1.0);
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 0.075, 0);
-    modelMatrix.scale(0.1, 0.05, 0.1);
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 0.075, 0);
+  modelMatrix.scale(0.1, 0.05, 0.1);
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   modelMatrix = popMatrix();
 }
 
-function drawDoors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+function drawDoors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
   // Main Building
   drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -2, -2.75, 5, 0, 0, 0, 0, false);
   // Side Building
@@ -904,103 +895,103 @@ function drawDoors(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
   drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 20, -2.75, -1, 0, 1, 0, 90, true);
 }
 
-function drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, rotateAngle, rotate){
-  gl.uniform4f(u_Color, 105/256, 105/256, 105/256, 1.0);
+function drawIndividualDoor(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, rotateAngle, rotate) {
+  gl.uniform4f(u_Color, 105 / 256, 105 / 256, 105 / 256, 1.0);
   pushMatrix(modelMatrix);
-    modelMatrix.translate(offsetX, offsetY, offsetZ);
-    if(rotate){
-      modelMatrix.rotate(rotateAngle, rotateX, rotateY, rotateZ)
-    }
-    modelMatrix.scale(2.0, 4, 0.1); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(offsetX, offsetY, offsetZ);
+  if (rotate) {
+    modelMatrix.rotate(rotateAngle, rotateX, rotateY, rotateZ)
+  }
+  modelMatrix.scale(2.0, 4, 0.1); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 }
 
-function drawWindows(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
+function drawWindows(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
   //Main Building
-  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -8, -2, 5, 0, 0, 0, 0 , false);
-  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 1, -2, 5, 0, 0, 0, 0 , false);
-  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 6, -2, 5, 0, 0, 0, 0 , false);
-  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -8, 2, 5, 0, 0, 0, 0 , false);
-  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 1, 2, 5, 0, 0, 0, 0 , false);
-  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 6, 2, 5, 0, 0, 0, 0 , false);
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -8, -2, 5, 0, 0, 0, 0, false);
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 1, -2, 5, 0, 0, 0, 0, false);
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 6, -2, 5, 0, 0, 0, 0, false);
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, -8, 2, 5, 0, 0, 0, 0, false);
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 1, 2, 5, 0, 0, 0, 0, false);
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 6, 2, 5, 0, 0, 0, 0, false);
   // Side Building
-  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 11, -2, 3, 0, 0, 0, 0 , false);
+  drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, 11, -2, 3, 0, 0, 0, 0, false);
 }
 
-function drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, rotateAngle, rotate){
-  gl.uniform4f(u_Color, 105/256, 105/256, 105/256, 1.0);
-  
+function drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, rotateAngle, rotate) {
+  gl.uniform4f(u_Color, 105 / 256, 105 / 256, 105 / 256, 1.0);
+
   pushMatrix(modelMatrix);
   modelMatrix.translate(offsetX, offsetY, offsetZ);
 
   // Left Border (TRANSLATIONS BUITL AROUND THIS)
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 0, 0);
-    modelMatrix.scale(0.2, 2.0, 0.1); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 0, 0);
+  modelMatrix.scale(0.2, 2.0, 0.1); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   // Top Border
   pushMatrix(modelMatrix);
-    modelMatrix.translate(1.4, 1.1, 0);
-    modelMatrix.rotate(90, 0, 0, 1);
-    modelMatrix.scale(0.2, 3.0, 0.1); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(1.4, 1.1, 0);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.scale(0.2, 3.0, 0.1); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   // Right Border
   pushMatrix(modelMatrix);
-    modelMatrix.translate(2.8, 0, 0.0);
-    modelMatrix.scale(0.2, 2.0, 0.1); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(2.8, 0, 0.0);
+  modelMatrix.scale(0.2, 2.0, 0.1); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
   // Bottom Border
   pushMatrix(modelMatrix);
-    modelMatrix.translate(1.4, -1.1, 0);
-    modelMatrix.rotate(90, 0, 0, 1);
-    modelMatrix.scale(0.2, 3.0, 0.1); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(1.4, -1.1, 0);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.scale(0.2, 3.0, 0.1); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
-  gl.uniform4f(u_Color, 211/256, 211/256, 211/256, 1.0);
+  gl.uniform4f(u_Color, 211 / 256, 211 / 256, 211 / 256, 1.0);
 
   // Inside bit
   pushMatrix(modelMatrix);
-    modelMatrix.translate(1.4, 0, 0);
-    modelMatrix.rotate(90, 0, 0, 1);
-    modelMatrix.scale(2.1, 2.9, 0.05); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(1.4, 0, 0);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.scale(2.1, 2.9, 0.05); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
   modelMatrix = popMatrix();
 }
 
-function drawBeams(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
-  gl.uniform4f(u_Color, 193/256, 154/256, 107/256, 1.0);
+function drawBeams(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
+  gl.uniform4f(u_Color, 193 / 256, 154 / 256, 107 / 256, 1.0);
 
   // Beam on main building
   pushMatrix(modelMatrix);
-    modelMatrix.translate(-0.25, -0.5, 5.125);
-    modelMatrix.scale(19.5, 0.5, 0.25); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(-0.25, -0.5, 5.125);
+  modelMatrix.scale(19.5, 0.5, 0.25); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 }
 
-function drawDrains(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
-  gl.uniform4f(u_Color, 0/256, 0/256, 0/256, 1.0);
+function drawDrains(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color) {
+  gl.uniform4f(u_Color, 0 / 256, 0 / 256, 0 / 256, 1.0);
 
   // Horizontal beam on main building
   pushMatrix(modelMatrix);
-    modelMatrix.translate(0, 3.9, 5.125);
-    modelMatrix.scale(20.0, 0.2, 0.25); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(0, 3.9, 5.125);
+  modelMatrix.scale(20.0, 0.2, 0.25); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 
   // Vertical beam on main building
   pushMatrix(modelMatrix);
-    modelMatrix.translate(9.75, -1, 5.125);
-    modelMatrix.rotate(90, 0, 0, 1);  
-    modelMatrix.scale(10.0, 0.2, 0.25); // Scale
-    drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix.translate(9.75, -1, 5.125);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.scale(10.0, 0.2, 0.25); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
 }
 
@@ -1008,16 +999,18 @@ function drawDrains(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color){
 function drawbox(gl, u_ModelMatrix, u_NormalMatrix, n) {
   pushMatrix(modelMatrix);
 
-    // Pass the model matrix to the uniform variable
-    gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
+  // Pass the model matrix to the uniform variable
+  gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
 
-    // Calculate the normal transformation matrix and pass it to u_NormalMatrix
-    g_normalMatrix.setInverseOf(modelMatrix);
-    g_normalMatrix.transpose();
-    gl.uniformMatrix4fv(u_NormalMatrix, false, g_normalMatrix.elements);
+  // Calculate the normal transformation matrix and pass it to u_NormalMatrix
+  g_normalMatrix.setInverseOf(modelMatrix);
+  g_normalMatrix.transpose();
+  gl.uniformMatrix4fv(u_NormalMatrix, false, g_normalMatrix.elements);
 
-    // Draw the cube
-    gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);
+  // Draw the cube
+  gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);
 
   modelMatrix = popMatrix();
 }
+
+
