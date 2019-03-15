@@ -1108,6 +1108,25 @@ function drawIndividualWindow(gl, u_ModelMatrix, u_NormalMatrix, n, u_Color, off
   modelMatrix.scale(0.2, 3.0, 0.1); // Scale
   drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
   modelMatrix = popMatrix();
+  // Horizontal
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(1.4, 0.5, 0);
+  modelMatrix.rotate(90, 0, 0, 1);
+  modelMatrix.scale(0.2, 3.0, 0.1); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  // Left vertical
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0.93, 0, 0);
+  modelMatrix.scale(0.2, 2.0, 0.1); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  // Right vertical
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(1.86, 0, 0);
+  modelMatrix.scale(0.2, 2.0, 0.1); // Scale
+  drawbox(gl, u_ModelMatrix, u_NormalMatrix, n);
+  modelMatrix = popMatrix();
 
   if(offsetY > 0 ){
     gl.uniform4f(u_Color, 211 / 256, 211 / 256, 211 / 256, 1.0);  //Upstairs
